@@ -4,10 +4,10 @@
 
 #include "log.h"
 #include <algorithm>
-#include <iostream>
-#include <sstream>
 #include <ctime>
+#include <iostream>
 #include <map>
+#include <sstream>
 
 namespace zjl {
 
@@ -60,8 +60,7 @@ public:
 class TimeFormatItem : public LogFormatter::FormatItem {
 public:
     explicit TimeFormatItem(const std::string &str = "%Y-%m-%d %H:%M:%S")
-        : m_time_pattern(str)
-    {
+        : m_time_pattern(str) {
         if (m_time_pattern.empty()) {
             m_time_pattern = "%Y-%m-%d %H:%M:%S";
         }
@@ -70,7 +69,7 @@ public:
         struct tm time_struct {};
         time_t time_l = ev->getTime();
         localtime_r(&time_l, &time_struct);
-        char buffer[64] {0};
+        char buffer[64]{0};
         strftime(buffer, sizeof(buffer),
                  m_time_pattern.c_str(), &time_struct);
         out << buffer;
@@ -119,8 +118,9 @@ public:
  * %% 输出百分号
  * %T 输出制表符
  * */
-static std::map<char, LogFormatter::FormatItem::ptr> format_item_map {
-#define FN(CH,ITEM_NAME) { CH, std::make_shared<ITEM_NAME>() }
+static std::map<char, LogFormatter::FormatItem::ptr> format_item_map{
+#define FN(CH, ITEM_NAME) \
+    { CH, std::make_shared<ITEM_NAME>() }
     FN('p', LevelFormatItem),
     FN('f', FilenameFormatItem),
     FN('l', LineFormatItem),
@@ -156,9 +156,8 @@ std::string LogLevel::levelToString(LogLevel::Level level) {
     return result;
 }
 
-Logger::Logger(const std::string& name, const std::string &pattern)
-: m_name(name), m_level(LogLevel::DEBUG), m_format_pattern(pattern)
-{
+Logger::Logger(const std::string &name, const std::string &pattern)
+    : m_name(name), m_level(LogLevel::DEBUG), m_format_pattern(pattern) {
     m_formatter.reset(new LogFormatter(pattern));
 }
 
@@ -179,7 +178,7 @@ void Logger::delAppender(LogAppender::ptr appender) {
 void Logger::log(LogEvent::ptr ev) {
     // 只有要输出日志等级大于等于日志器的日志等级时才输出
     if (ev->getLevel() < m_level) {
-        return ;
+        return;
     }
     // 遍历输出器，输出日志
     for (auto &item : m_appender_list) {
@@ -213,23 +212,20 @@ void Logger::fatal(LogEvent::ptr ev) {
 }
 
 StdoutLogAppender::StdoutLogAppender(LogLevel::Level level)
-: LogAppender(level)
-{}
+    : LogAppender(level) {}
 
 void StdoutLogAppender::log(LogLevel::Level level, LogEvent::ptr ev) {
     if (level < m_level) {
-        return ;
+        return;
     }
     std::cout << m_formatter->format(ev);
 }
 
 LogAppender::LogAppender(LogLevel::Level level)
-: m_level(level)
-{ }
+    : m_level(level) {}
 
 FileLogAppender::FileLogAppender(const std::string &filename, LogLevel::Level level)
-: LogAppender(level), m_filename(filename)
-{
+    : LogAppender(level), m_filename(filename) {
     reopen();
 }
 
@@ -244,14 +240,13 @@ bool FileLogAppender::reopen() {
 
 void FileLogAppender::log(LogLevel::Level level, LogEvent::ptr ev) {
     if (level < m_level) {
-        return ;
+        return;
     }
     m_file_stream << m_formatter->format(ev);
 }
 
 LogFormatter::LogFormatter(const std::string &pattern)
-: m_format_pattern(pattern)
-{
+    : m_format_pattern(pattern) {
     init();
 }
 
@@ -266,18 +261,18 @@ std::string LogFormatter::format(LogEvent::ptr ev) {
 // %d {%d:%d} aaaaaa %d %n
 void LogFormatter::init() {
     enum PARSE_STATUS {
-        SCAN_STATUS,    // 扫描普通字符
-        CREATE_STATUS,  // 扫描到 %，处理占位符
+        SCAN_STATUS,   // 扫描普通字符
+        CREATE_STATUS, // 扫描到 %，处理占位符
     };
     PARSE_STATUS STATUS = SCAN_STATUS;
     size_t str_begin = 0, str_end = 0;
-//    std::vector<char> item_list;
+    //    std::vector<char> item_list;
     for (size_t i = 0; i < m_format_pattern.length(); i++) {
         switch (STATUS) {
-            case SCAN_STATUS:   // 普通扫描分支，将扫描到普通字符串创建对应的普通字符处理对象后填入 m_format_item_list 中
+            case SCAN_STATUS: // 普通扫描分支，将扫描到普通字符串创建对应的普通字符处理对象后填入 m_format_item_list 中
                 // 扫描记录普通字符的开始结束位置
                 str_begin = i;
-                for(str_end = i; str_end < m_format_pattern.length(); str_end++) {
+                for (str_end = i; str_end < m_format_pattern.length(); str_end++) {
                     // 扫描到 % 结束普通字符串查找，将 STATUS 赋值为占位符处理状态，等待后续处理后进入占位符处理状态
                     if (m_format_pattern[str_end] == '%') {
                         STATUS = CREATE_STATUS;
@@ -315,6 +310,4 @@ void __LoggerManager::init() {
 Logger::ptr __LoggerManager::getLogger(const std::string &name) {
     return m_logger_map[name];
 }
-
-
 }

@@ -5,39 +5,43 @@
 #ifndef SERVER_FRAMEWORK_LOG_H
 #define SERVER_FRAMEWORK_LOG_H
 
-#include <cstdio>
+#include "util.h"
 #include <cstdarg>
 #include <cstdint>
+#include <cstdio>
 #include <ctime>
-#include <string>
-#include <memory>
-#include <list>
-#include <strstream>
 #include <fstream>
-#include <vector>
+#include <list>
 #include <map>
-#include "util.h"
+#include <memory>
+#include <string>
+#include <strstream>
+#include <vector>
 
 #define LOG_LEVEL(logger, level, massage) \
     logger->log(std::make_shared<zjl::LogEvent>(__FILE__, __LINE__, zjl::getThreadID(), zjl::getFiberID(), time(nullptr), massage, level));
 
-#define LOG_DEBUG(logger, massage)  LOG_LEVEL(logger, zjl::LogLevel::DEBUG, massage)
-#define LOG_INFO(logger, massage)   LOG_LEVEL(logger, zjl::LogLevel::INFO, massage)
-#define LOG_WARN(logger, massage)   LOG_LEVEL(logger, zjl::LogLevel::WARN, massage)
-#define LOG_ERROR(logger, massage)  LOG_LEVEL(logger, zjl::LogLevel::ERROR, massage)
-#define LOG_FATAL(logger, massage)  LOG_LEVEL(logger, zjl::LogLevel::FATAL, massage)
+#define LOG_DEBUG(logger, massage) LOG_LEVEL(logger, zjl::LogLevel::DEBUG, massage)
+#define LOG_INFO(logger, massage) LOG_LEVEL(logger, zjl::LogLevel::INFO, massage)
+#define LOG_WARN(logger, massage) LOG_LEVEL(logger, zjl::LogLevel::WARN, massage)
+#define LOG_ERROR(logger, massage) LOG_LEVEL(logger, zjl::LogLevel::ERROR, massage)
+#define LOG_FATAL(logger, massage) LOG_LEVEL(logger, zjl::LogLevel::FATAL, massage)
 
-#define LOG_FMT_LEVEL(logger, level, format, argv...) { \
-    char *b = nullptr; \
-    int l = asprintf(&b, format, argv); \
-    if (l != -1) { LOG_LEVEL(logger, level, std::string(b, l)); free(b); } }
+#define LOG_FMT_LEVEL(logger, level, format, argv...)    \
+    {                                                    \
+        char *b = nullptr;                               \
+        int l = asprintf(&b, format, argv);              \
+        if (l != -1) {                                   \
+            LOG_LEVEL(logger, level, std::string(b, l)); \
+            free(b);                                     \
+        }                                                \
+    }
 
-#define LOG_FMT_DEBUG(logger, format, argv...)  LOG_FMT_LEVEL(logger, zjl::LogLevel::DEBUG, format, argv)
-#define LOG_FMT_INFO(logger, format, argv...)   LOG_FMT_LEVEL(logger, zjl::LogLevel::INFO, format, argv)
-#define LOG_FMT_WARN(logger, format, argv...)   LOG_FMT_LEVEL(logger, zjl::LogLevel::WARN, format, argv)
-#define LOG_FMT_ERROR(logger, format, argv...)  LOG_FMT_LEVEL(logger, zjl::LogLevel::ERROR, format, argv)
-#define LOG_FMT_FATAL(logger, format, argv...)  LOG_FMT_LEVEL(logger, zjl::LogLevel::FATAL, format, argv)
-
+#define LOG_FMT_DEBUG(logger, format, argv...) LOG_FMT_LEVEL(logger, zjl::LogLevel::DEBUG, format, argv)
+#define LOG_FMT_INFO(logger, format, argv...) LOG_FMT_LEVEL(logger, zjl::LogLevel::INFO, format, argv)
+#define LOG_FMT_WARN(logger, format, argv...) LOG_FMT_LEVEL(logger, zjl::LogLevel::WARN, format, argv)
+#define LOG_FMT_ERROR(logger, format, argv...) LOG_FMT_LEVEL(logger, zjl::LogLevel::ERROR, format, argv)
+#define LOG_FMT_FATAL(logger, format, argv...) LOG_FMT_LEVEL(logger, zjl::LogLevel::FATAL, format, argv)
 
 namespace zjl {
 // 日志级别
@@ -60,10 +64,9 @@ public:
     typedef std::shared_ptr<LogEvent> ptr;
 
     LogEvent(const std::string &filename, uint32_t line, uint32_t thread_id,
-        uint32_t fiber_id, time_t time, const std::string &content, LogLevel::Level level = LogLevel::DEBUG)
-        : m_level(level),  m_filename(filename), m_line(line), m_thread_id(thread_id),
-            m_fiber_id(fiber_id), m_time(time), m_content(content)
-        { }
+             uint32_t fiber_id, time_t time, const std::string &content, LogLevel::Level level = LogLevel::DEBUG)
+        : m_level(level), m_filename(filename), m_line(line), m_thread_id(thread_id),
+          m_fiber_id(fiber_id), m_time(time), m_content(content) {}
 
     const std::string &getFilename() const { return m_filename; }
     LogLevel::Level getLevel() const { return m_level; }
@@ -76,15 +79,14 @@ public:
     void setLevel(LogLevel::Level level) { m_level = level; }
 
 private:
-    LogLevel::Level m_level;        //日志等级
-    std::string m_filename;         // 文件名
-    uint32_t m_line = 0;            // 行号
-    uint32_t m_thread_id = 0;       // 线程号
-    uint32_t m_fiber_id = 0;        // 协程号
-//    uint32_t m_elapse = 0;        // 程序启动到现在的时间
-    time_t m_time;                  // 时间
+    LogLevel::Level m_level;  //日志等级
+    std::string m_filename;   // 文件名
+    uint32_t m_line = 0;      // 行号
+    uint32_t m_thread_id = 0; // 线程号
+    uint32_t m_fiber_id = 0;  // 协程号
+                              //    uint32_t m_elapse = 0;        // 程序启动到现在的时间
+    time_t m_time;            // 时间
     std::string m_content;
-
 };
 
 //日志格式化器
@@ -105,8 +107,8 @@ public:
 private:
     void init();
 
-    std::string m_format_pattern;                       // 日志格式化字符串
-    std::vector<FormatItem::ptr> m_format_item_list;    // 格式化字符串解析后的解析器列表
+    std::string m_format_pattern;                    // 日志格式化字符串
+    std::vector<FormatItem::ptr> m_format_item_list; // 格式化字符串解析后的解析器列表
 };
 
 // 日志输出器基类
@@ -121,9 +123,10 @@ public:
 
     LogFormatter::ptr getFormatter() const { return m_formatter; }
     void setFormatter(const LogFormatter::ptr &formatter) { m_formatter = formatter; }
+
 protected:
-    LogLevel::Level m_level;        // 输出器的日志等级
-    LogFormatter::ptr m_formatter;  // 格式化器，将LogEvent对象格式化为指定的字符串格式
+    LogLevel::Level m_level;       // 输出器的日志等级
+    LogFormatter::ptr m_formatter; // 格式化器，将LogEvent对象格式化为指定的字符串格式
 };
 
 // 日志器
@@ -131,7 +134,7 @@ class Logger {
 public:
     typedef std::shared_ptr<Logger> ptr;
 
-    explicit Logger(const std::string& name = "root", const std::string &pattern = "[%d] [%p] [%f:%l@%t:%F]%T%m%n");
+    explicit Logger(const std::string &name = "root", const std::string &pattern = "[%d] [%p] [%f:%l@%t:%F]%T%m%n");
     virtual void log(LogEvent::ptr ev);
     void debug(LogEvent::ptr ev);
     void info(LogEvent::ptr ev);
@@ -142,13 +145,13 @@ public:
     void delAppender(LogAppender::ptr appender);
 
     LogLevel::Level getLevel() const { return m_level; }
-    void setLevel(LogLevel::Level level) { m_level = level;  }
+    void setLevel(LogLevel::Level level) { m_level = level; }
 
 private:
-    const std::string m_name;                   // 日志名称
-    LogLevel::Level m_level;                    // 日志有效级别
-    std::string m_format_pattern;
-    LogFormatter::ptr m_formatter;              // 日志默认格式化器
+    const std::string m_name;                    // 日志名称
+    LogLevel::Level m_level;                     // 日志有效级别
+    std::string m_format_pattern;                // 日志输格式化器的默认pattern
+    LogFormatter::ptr m_formatter;               // 日志默认格式化器
     std::list<LogAppender::ptr> m_appender_list; // Appender列表
 };
 
@@ -181,7 +184,7 @@ public:
     typedef std::shared_ptr<__LoggerManager> ptr;
     __LoggerManager();
 
-    Logger::ptr getLogger(const std::string& name);
+    Logger::ptr getLogger(const std::string &name);
 
 private:
     void init();
@@ -189,7 +192,5 @@ private:
 };
 
 typedef SingletonPtr<__LoggerManager> LoggerManager;
-
-
 }
 #endif //SERVER_FRAMEWORK_LOG_H
