@@ -19,7 +19,7 @@ int64_t getFiberID();
 template <class T>
 class Singleton final {
 public:
-    static T *GetInstance() {
+    static T* GetInstance() {
         static T ins;
         return &ins;
     }
