@@ -1,6 +1,8 @@
 # zjlian
 bin
 lib
+.vscode
+.idea
 
 # Created by .ignore support plugin (hsz.mobi)
 ### CMake template
