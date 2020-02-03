@@ -13,8 +13,8 @@ namespace zjl {
 
 class PlainFormatItem : public LogFormatter::FormatItem {
 public:
-    explicit PlainFormatItem(const std::string &str) : m_str(str) {}
-    void format(std::ostream &out, LogEvent::ptr ev) override {
+    explicit PlainFormatItem(const std::string& str) : m_str(str) {}
+    void format(std::ostream& out, LogEvent::ptr ev) override {
         out << m_str;
     }
 
@@ -24,48 +24,48 @@ private:
 
 class LevelFormatItem : public LogFormatter::FormatItem {
 public:
-    void format(std::ostream &out, LogEvent::ptr ev) override {
+    void format(std::ostream& out, LogEvent::ptr ev) override {
         out << LogLevel::levelToString(ev->getLevel());
     }
 };
 
 class FilenameFormatItem : public LogFormatter::FormatItem {
 public:
-    void format(std::ostream &out, LogEvent::ptr ev) override {
+    void format(std::ostream& out, LogEvent::ptr ev) override {
         out << ev->getFilename();
     }
 };
 
 class LineFormatItem : public LogFormatter::FormatItem {
 public:
-    void format(std::ostream &out, LogEvent::ptr ev) override {
+    void format(std::ostream& out, LogEvent::ptr ev) override {
         out << ev->getLine();
     }
 };
 
 class ThreadIDFormatItem : public LogFormatter::FormatItem {
 public:
-    void format(std::ostream &out, LogEvent::ptr ev) override {
+    void format(std::ostream& out, LogEvent::ptr ev) override {
         out << ev->getThreadId();
     }
 };
 
 class FiberIDFormatItem : public LogFormatter::FormatItem {
 public:
-    void format(std::ostream &out, LogEvent::ptr ev) override {
+    void format(std::ostream& out, LogEvent::ptr ev) override {
         out << ev->getFiberId();
     }
 };
 
 class TimeFormatItem : public LogFormatter::FormatItem {
 public:
-    explicit TimeFormatItem(const std::string &str = "%Y-%m-%d %H:%M:%S")
+    explicit TimeFormatItem(const std::string& str = "%Y-%m-%d %H:%M:%S")
         : m_time_pattern(str) {
         if (m_time_pattern.empty()) {
             m_time_pattern = "%Y-%m-%d %H:%M:%S";
         }
     }
-    void format(std::ostream &out, LogEvent::ptr ev) override {
+    void format(std::ostream& out, LogEvent::ptr ev) override {
         struct tm time_struct {};
         time_t time_l = ev->getTime();
         localtime_r(&time_l, &time_struct);
@@ -81,28 +81,28 @@ private:
 
 class ContentFormatItem : public LogFormatter::FormatItem {
 public:
-    void format(std::ostream &out, LogEvent::ptr ev) override {
+    void format(std::ostream& out, LogEvent::ptr ev) override {
         out << ev->getContent();
     }
 };
 
 class NewLineFormatItem : public LogFormatter::FormatItem {
 public:
-    void format(std::ostream &out, LogEvent::ptr ev) override {
+    void format(std::ostream& out, LogEvent::ptr ev) override {
         out << std::endl;
     }
 };
 
 class PercentSignFormatItem : public LogFormatter::FormatItem {
 public:
-    void format(std::ostream &out, LogEvent::ptr ev) override {
+    void format(std::ostream& out, LogEvent::ptr ev) override {
         out << '%';
     }
 };
 
 class TabFormatItem : public LogFormatter::FormatItem {
 public:
-    void format(std::ostream &out, LogEvent::ptr ev) override {
+    void format(std::ostream& out, LogEvent::ptr ev) override {
         out << '\t';
     }
 };
@@ -156,7 +156,7 @@ std::string LogLevel::levelToString(LogLevel::Level level) {
     return result;
 }
 
-Logger::Logger(const std::string &name, const std::string &pattern)
+Logger::Logger(const std::string& name, const std::string& pattern)
     : m_name(name), m_level(LogLevel::DEBUG), m_format_pattern(pattern) {
     m_formatter.reset(new LogFormatter(pattern));
 }
@@ -181,7 +181,7 @@ void Logger::log(LogEvent::ptr ev) {
         return;
     }
     // 遍历输出器，输出日志
-    for (auto &item : m_appender_list) {
+    for (auto& item : m_appender_list) {
         item->log(ev->getLevel(), ev);
     }
 }
@@ -224,7 +224,7 @@ void StdoutLogAppender::log(LogLevel::Level level, LogEvent::ptr ev) {
 LogAppender::LogAppender(LogLevel::Level level)
     : m_level(level) {}
 
-FileLogAppender::FileLogAppender(const std::string &filename, LogLevel::Level level)
+FileLogAppender::FileLogAppender(const std::string& filename, LogLevel::Level level)
     : LogAppender(level), m_filename(filename) {
     reopen();
 }
@@ -245,14 +245,14 @@ void FileLogAppender::log(LogLevel::Level level, LogEvent::ptr ev) {
     m_file_stream << m_formatter->format(ev);
 }
 
-LogFormatter::LogFormatter(const std::string &pattern)
+LogFormatter::LogFormatter(const std::string& pattern)
     : m_format_pattern(pattern) {
     init();
 }
 
 std::string LogFormatter::format(LogEvent::ptr ev) {
     std::stringstream ss;
-    for (auto &item : m_format_item_list) {
+    for (auto& item : m_format_item_list) {
         item->format(ss, ev);
     }
     return ss.str();
@@ -304,10 +304,18 @@ __LoggerManager::__LoggerManager() {
 
 void __LoggerManager::init() {
     // TODO 通过读取配置文件信息，创建需要的日志器
-    m_logger_map.insert(std::make_pair("global", std::make_shared<Logger>()));
+
+    // 默认的生成一个输出到 stdout 的 debug 级输出器
+    auto global_logger = std::make_shared<Logger>();
+    global_logger->addAppender(std::make_shared<StdoutLogAppender>());
+    m_logger_map.insert(std::make_pair("global", global_logger));
 }
 
-Logger::ptr __LoggerManager::getLogger(const std::string &name) {
+Logger::ptr __LoggerManager::getLogger(const std::string& name) {
     return m_logger_map[name];
+}
+
+Logger::ptr __LoggerManager::getGlobal() {
+    return getLogger("global");
 }
 }

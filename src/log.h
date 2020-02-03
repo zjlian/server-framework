@@ -29,7 +29,7 @@
 
 #define LOG_FMT_LEVEL(logger, level, format, argv...)    \
     {                                                    \
-        char *b = nullptr;                               \
+        char* b = nullptr;                               \
         int l = asprintf(&b, format, argv);              \
         if (l != -1) {                                   \
             LOG_LEVEL(logger, level, std::string(b, l)); \
@@ -42,6 +42,8 @@
 #define LOG_FMT_WARN(logger, format, argv...) LOG_FMT_LEVEL(logger, zjl::LogLevel::WARN, format, argv)
 #define LOG_FMT_ERROR(logger, format, argv...) LOG_FMT_LEVEL(logger, zjl::LogLevel::ERROR, format, argv)
 #define LOG_FMT_FATAL(logger, format, argv...) LOG_FMT_LEVEL(logger, zjl::LogLevel::FATAL, format, argv)
+
+#define GET_ROOT_LOGGER() zjl::LoggerManager::GetInstance()->getGlobal()
 
 namespace zjl {
 // 日志级别
@@ -63,18 +65,18 @@ class LogEvent {
 public:
     typedef std::shared_ptr<LogEvent> ptr;
 
-    LogEvent(const std::string &filename, uint32_t line, uint32_t thread_id,
-             uint32_t fiber_id, time_t time, const std::string &content, LogLevel::Level level = LogLevel::DEBUG)
+    LogEvent(const std::string& filename, uint32_t line, uint32_t thread_id,
+             uint32_t fiber_id, time_t time, const std::string& content, LogLevel::Level level = LogLevel::DEBUG)
         : m_level(level), m_filename(filename), m_line(line), m_thread_id(thread_id),
           m_fiber_id(fiber_id), m_time(time), m_content(content) {}
 
-    const std::string &getFilename() const { return m_filename; }
+    const std::string& getFilename() const { return m_filename; }
     LogLevel::Level getLevel() const { return m_level; }
     uint32_t getLine() const { return m_line; }
     uint32_t getThreadId() const { return m_thread_id; }
     uint32_t getFiberId() const { return m_fiber_id; }
     time_t getTime() const { return m_time; }
-    const std::string &getContent() const { return m_content; }
+    const std::string& getContent() const { return m_content; }
 
     void setLevel(LogLevel::Level level) { m_level = level; }
 
@@ -98,10 +100,10 @@ public:
     public:
         typedef std::shared_ptr<FormatItem> ptr;
 
-        virtual void format(std::ostream &out, LogEvent::ptr ev) = 0;
+        virtual void format(std::ostream& out, LogEvent::ptr ev) = 0;
     };
 
-    explicit LogFormatter(const std::string &pattern = "");
+    explicit LogFormatter(const std::string& pattern = "");
     std::string format(LogEvent::ptr ev);
 
 private:
@@ -122,7 +124,7 @@ public:
     virtual void log(LogLevel::Level level, LogEvent::ptr ev) = 0;
 
     LogFormatter::ptr getFormatter() const { return m_formatter; }
-    void setFormatter(const LogFormatter::ptr &formatter) { m_formatter = formatter; }
+    void setFormatter(const LogFormatter::ptr& formatter) { m_formatter = formatter; }
 
 protected:
     LogLevel::Level m_level;       // 输出器的日志等级
@@ -134,7 +136,7 @@ class Logger {
 public:
     typedef std::shared_ptr<Logger> ptr;
 
-    explicit Logger(const std::string &name = "root", const std::string &pattern = "[%d] [%p] [%f:%l@%t:%F]%T%m%n");
+    explicit Logger(const std::string& name = "root", const std::string& pattern = "[%d] [%p] [%f:%l@%t:%F]%T%m%n");
     virtual void log(LogEvent::ptr ev);
     void debug(LogEvent::ptr ev);
     void info(LogEvent::ptr ev);
@@ -169,7 +171,7 @@ class FileLogAppender : public LogAppender {
 public:
     typedef std::shared_ptr<FileLogAppender> ptr;
 
-    explicit FileLogAppender(const std::string &filename, LogLevel::Level level = LogLevel::DEBUG);
+    explicit FileLogAppender(const std::string& filename, LogLevel::Level level = LogLevel::DEBUG);
     void log(LogLevel::Level level, LogEvent::ptr ev) override;
     bool reopen();
 
@@ -182,9 +184,11 @@ private:
 class __LoggerManager {
 public:
     typedef std::shared_ptr<__LoggerManager> ptr;
+
     __LoggerManager();
 
-    Logger::ptr getLogger(const std::string &name);
+    Logger::ptr getLogger(const std::string& name);
+    Logger::ptr getGlobal();
 
 private:
     void init();
