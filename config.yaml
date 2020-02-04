@@ -1,0 +1,15 @@
+logs:
+    - name: root
+      level: info
+      formatter: "[%d] [%p] [%f:%l]%T%m%n"
+      appender:
+          - type: FileLogAppender
+            file: /home/log/zjlsf_root_log.txt
+          - type: StdoutLogAppender
+    - name: system
+      level: debug
+      formatter: "[%d] [%p] [%f:%l]%T%m%n"
+      appender:
+          - type: FileLogAppender
+            file: /home/log/zjlsf_system_log.txt
+          - type: StdoutLogAppender
