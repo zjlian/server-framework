@@ -1,9 +1,9 @@
+#include "src/config.h"
+#include "src/log.h"
+#include "src/util.h"
 #include <boost/array.hpp>
 #include <iostream>
 #include <pthread.h>
-#include <src/log.h>
-#include <src/util.h>
-
 int main() {
     // auto logger = zjl::LoggerManager::GetInstance()->getLogger("global");
     // logger->addAppender(std::make_shared<zjl::StdoutLogAppender>());
@@ -30,7 +30,7 @@ int main() {
     LOG_FMT_FATAL(logger, "消息消息 %s", "fatal");
 
     boost::array<int, 4> arr = {{1, 2, 3, 4}};
-    std::cout << "hi" << arr[0] << std::endl;
+    std::cout << arr[0] << std::endl;
 
     return 0;
 }
