@@ -3,8 +3,11 @@
 
 #include "log.h"
 #include <boost/lexical_cast.hpp>
+#include <map>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
+#include <string>
 
 namespace zjl {
 
@@ -36,17 +39,19 @@ public:
     typedef std::shared_ptr<ConfigVar> ptr;
 
     ConfigVar(const std::string& name, const T& value, const std::string& description)
-        : ConfigVarBase(name, description), m_val(value) {}
+        : ConfigVarBase(name, description), m_value(value) {}
 
+    const T getValue() const { return m_value; }
+    void setValue(const T value) { m_value = value; }
     std::string toString() override {
         try {
             // 调用 boost::lexical_cast 类型转换器, 失败抛出 bad_lexical_cast 异常
-            return boost::lexical_cast<std::string>(m_val);
+            return boost::lexical_cast<std::string>(m_value);
         } catch (std::exception& e) {
             LOG_FMT_ERROR(GET_ROOT_LOGGER(),
                           "ConfigVar::toString exception %s convert: %s to string",
                           e.what(),
-                          typeid(m_val).name());
+                          typeid(m_value).name());
         }
         return "<error>";
     }
@@ -54,23 +59,65 @@ public:
     bool fromString(const std::string& val) override {
         try {
             // 调用 boost::lexical_cast 类型转换器, 失败抛出 bad_lexical_cast 异常
-            m_val = boost::lexical_cast<T>(val);
+            m_value = boost::lexical_cast<T>(val);
             return true;
         } catch (std::exception& e) {
             LOG_FMT_ERROR(GET_ROOT_LOGGER(),
                           "ConfigVar::toString exception %s convert: string to %s",
                           e.what(),
-                          typeid(m_val).name());
+                          typeid(m_value).name());
         }
         return false;
     }
 
 private:
-    T m_val; // 配置项的值
+    T m_value; // 配置项的值
 };
 
 class Config {
-    // TODO
+public:
+    typedef std::map<std::string, ConfigVarBase::ptr> ConfigVarMap;
+
+    // 查找配置项
+    template <class T>
+    static typename ConfigVar<T>::ptr
+    Lookup(const std::string& name) {
+        auto itor = s_data.find(name);
+        if (itor == s_data.end()) {
+            return nullptr;
+        }
+        /* 从 map 取出的配置项对象的类型为基类 ConfigVarBase，
+         * 但我们需要使用其派生类的成员函数和变量，
+         * 所以需要进行一次显示的类型转换
+         */
+        return std::dynamic_pointer_cast<ConfigVar<T>>(itor->second);
+    }
+
+    // 检查并创建配置项
+    template <class T>
+    static typename ConfigVar<T>::ptr
+    Lookup(const std::string& name, const T& value, const std::string& description = "") {
+        auto tmp = Lookup<T>(name);
+        // 已存在同名配置项
+        if (tmp) {
+            LOG_FMT_INFO(GET_ROOT_LOGGER(), "Config::Lookup name=%s 已存在", name.c_str());
+            return tmp;
+        }
+        // 判断名称是否合法
+        if (name.find_first_not_of(
+                "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm0123456789._") != std::string::npos) {
+            LOG_FMT_ERROR(GET_ROOT_LOGGER(),
+                          "Congif::Lookup exception name=%s 参数只能以字母数字点或下划线开头",
+                          name.c_str());
+            throw std::invalid_argument(name);
+        }
+        auto v = std::make_shared<ConfigVar<T>>(name, value, description);
+        s_data[name] = v;
+        return v;
+    }
+
+private:
+    static ConfigVarMap s_data;
 };
 }
 
