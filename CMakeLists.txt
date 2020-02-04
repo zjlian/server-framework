@@ -25,7 +25,7 @@ include_directories(/usr/local/include)
 link_directories(/usr/local/lib)
 
 add_library(${PROJECT_NAME} SHARED src/log.cpp src/log.h src/util.cpp src/util.h src/config.cpp src/config.h)
-target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} yaml-cpp)
 
 add_executable(test ${PROJECT_SOURCE_DIR}/tests/test.cc)
 add_dependencies(test ${PROJECT_NAME})
