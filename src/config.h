@@ -2,12 +2,15 @@
 #define SERVER_FRAMEWORK_CONFIG_H
 
 #include "log.h"
+#include <algorithm>
 #include <boost/lexical_cast.hpp>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <yaml-cpp/yaml.h>
 
 namespace zjl {
 
@@ -17,13 +20,15 @@ public:
     typedef std::shared_ptr<ConfigVarBase> ptr;
 
     ConfigVarBase(const std::string& name, const std::string& description)
-        : m_name(name), m_description(description) {}
+        : m_name(name), m_description(description) {
+        std::transform(m_name.begin(), m_name.end(), m_name.begin(), ::tolower);
+    }
     virtual ~ConfigVarBase() = default;
 
     const std::string& getName() const { return m_name; }
     const std::string& getDesccription() const { return m_description; }
     // 将相的配置项的值转为为字符串
-    virtual std::string toString() = 0;
+    virtual std::string toString() const = 0;
     // 通过字符串来获设置配置项的值
     virtual bool fromString(const std::string& val) = 0;
 
@@ -43,7 +48,7 @@ public:
 
     const T getValue() const { return m_value; }
     void setValue(const T value) { m_value = value; }
-    std::string toString() override {
+    std::string toString() const override {
         try {
             // 调用 boost::lexical_cast 类型转换器, 失败抛出 bad_lexical_cast 异常
             return boost::lexical_cast<std::string>(m_value);
@@ -79,18 +84,24 @@ public:
     typedef std::map<std::string, ConfigVarBase::ptr> ConfigVarMap;
 
     // 查找配置项
-    template <class T>
-    static typename ConfigVar<T>::ptr
+    static ConfigVarBase::ptr
     Lookup(const std::string& name) {
         auto itor = s_data.find(name);
         if (itor == s_data.end()) {
             return nullptr;
         }
+        return itor->second;
+    }
+
+    // 查找配置项
+    template <class T>
+    static typename ConfigVar<T>::ptr
+    Lookup(const std::string& name) {
         /* 从 map 取出的配置项对象的类型为基类 ConfigVarBase，
          * 但我们需要使用其派生类的成员函数和变量，
-         * 所以需要进行一次显示的类型转换
+         * 所以需要进行一次明确类型的显示转换
          */
-        return std::dynamic_pointer_cast<ConfigVar<T>>(itor->second);
+        return std::dynamic_pointer_cast<ConfigVar<T>>(Lookup(name));
     }
 
     // 检查并创建配置项
@@ -104,8 +115,7 @@ public:
             return tmp;
         }
         // 判断名称是否合法
-        if (name.find_first_not_of(
-                "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm0123456789._") != std::string::npos) {
+        if (name.find_first_not_of("qwertyuiopasdfghjklzxcvbnm0123456789._") != std::string::npos) {
             LOG_FMT_ERROR(GET_ROOT_LOGGER(),
                           "Congif::Lookup exception name=%s 参数只能以字母数字点或下划线开头",
                           name.c_str());
@@ -114,6 +124,39 @@ public:
         auto v = std::make_shared<ConfigVar<T>>(name, value, description);
         s_data[name] = v;
         return v;
+    }
+
+    // 从 YAML::Node 中载入配置
+    static void LoadFromYAML(const YAML::Node& root) {
+        TraversalNode(root, "");
+    }
+
+private:
+    static void TraversalNode(const YAML::Node& node, const std::string& name) {
+        // TODO 需要分离遍历与创建逻辑
+        if (node.IsScalar()) {
+            auto itor = s_data.find(name);
+            if (itor != s_data.end()) {
+                // 配置项已存在，修改其值
+                itor->second->fromString(node.Scalar());
+            } else {
+                // TODO 创建未存在的配置项
+                LOG_ERROR(GET_ROOT_LOGGER(), "Config::TraversalNode exception: 该分支代码未实现");
+                throw std::logic_error("该分支代码未实现");
+            }
+        }
+        if (node.IsMap()) {
+            for (auto itor = node.begin(); itor != node.end(); ++itor) {
+                TraversalNode(
+                    itor->second,
+                    name.empty() ? itor->first.Scalar() : name + "." + itor->first.Scalar());
+            }
+        }
+        if (node.IsSequence()) {
+            for (size_t i = 0; i < node.size(); ++i) {
+                TraversalNode(node[i], name + "." + std::to_string(i));
+            }
+        }
     }
 
 private:
