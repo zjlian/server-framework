@@ -13,3 +13,6 @@ logs:
           - type: FileLogAppender
             file: /home/log/zjlsf_system_log.txt
           - type: StdoutLogAppender
+
+system:
+    port: 8088

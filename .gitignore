@@ -3,6 +3,7 @@ bin
 lib
 .vscode
 .idea
+build/*
 
 # Created by .ignore support plugin (hsz.mobi)
 ### CMake template
