@@ -10,6 +10,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 #include <yaml-cpp/yaml.h>
 
 namespace zjl {
@@ -48,7 +49,9 @@ public:
 
     const T getValue() const { return m_value; }
     void setValue(const T value) { m_value = value; }
-    std::string toString() const override {
+    // 返回配置项的值的字符串
+    std::string
+    toString() const override {
         try {
             // 调用 boost::lexical_cast 类型转换器, 失败抛出 bad_lexical_cast 异常
             return boost::lexical_cast<std::string>(m_value);
@@ -61,7 +64,8 @@ public:
         return "<error>";
     }
 
-    bool fromString(const std::string& val) override {
+    bool
+    fromString(const std::string& val) override {
         try {
             // 调用 boost::lexical_cast 类型转换器, 失败抛出 bad_lexical_cast 异常
             m_value = boost::lexical_cast<T>(val);
@@ -111,13 +115,16 @@ public:
         auto tmp = Lookup<T>(name);
         // 已存在同名配置项
         if (tmp) {
-            LOG_FMT_INFO(GET_ROOT_LOGGER(), "Config::Lookup name=%s 已存在", name.c_str());
+            LOG_FMT_INFO(GET_ROOT_LOGGER(),
+                         "Config::Lookup name=%s 已存在",
+                         name.c_str());
             return tmp;
         }
         // 判断名称是否合法
         if (name.find_first_not_of("qwertyuiopasdfghjklzxcvbnm0123456789._") != std::string::npos) {
             LOG_FMT_ERROR(GET_ROOT_LOGGER(),
-                          "Congif::Lookup exception name=%s 参数只能以字母数字点或下划线开头",
+                          "Congif::Lookup exception name=%s"
+                          "参数只能以字母数字点或下划线开头",
                           name.c_str());
             throw std::invalid_argument(name);
         }
@@ -127,34 +134,59 @@ public:
     }
 
     // 从 YAML::Node 中载入配置
-    static void LoadFromYAML(const YAML::Node& root) {
-        TraversalNode(root, "");
+    static void
+    LoadFromYAML(const YAML::Node& root) {
+        std::vector<std::pair<std::string, YAML::Node>> node_list;
+        TraversalNode(root, "", node_list);
+        // 遍历结果，更新 s_data
+        for (const auto& item : node_list) {
+            auto itor = s_data.find(item.first);
+            if (itor != s_data.end()) {
+                // 已存在同名配置项这覆盖当
+                s_data[item.first]->fromString(item.second.as<std::string>());
+            } else {
+                // 创建配置项
+                // TODO 创建不同类型的配置项
+                Lookup<std::string>(
+                    item.first,
+                    item.second.as<std::string>());
+            }
+        }
     }
 
 private:
-    static void TraversalNode(const YAML::Node& node, const std::string& name) {
-        // TODO 需要分离遍历与创建逻辑
+    // 遍历 YAML::Node 对象，并将遍历结果扁平化存到列表里返回
+    static void
+    TraversalNode(const YAML::Node& node, const std::string& name,
+                  std::vector<std::pair<std::string, YAML::Node>>& output) {
+        // 当 YAML::Node 为普通值节点，将结果存入 output
         if (node.IsScalar()) {
-            auto itor = s_data.find(name);
-            if (itor != s_data.end()) {
-                // 配置项已存在，修改其值
-                itor->second->fromString(node.Scalar());
+            auto itor = std::find_if(
+                output.begin(),
+                output.end(),
+                [&name](const std::pair<std::string, YAML::Node> item) {
+                    return item.first == name;
+                });
+            if (itor != output.end()) {
+                itor->second = node;
             } else {
-                // TODO 创建未存在的配置项
-                LOG_ERROR(GET_ROOT_LOGGER(), "Config::TraversalNode exception: 该分支代码未实现");
-                throw std::logic_error("该分支代码未实现");
+                output.push_back(std::make_pair(name, node));
             }
         }
+        // 当 YAML::Node 为映射型节点，使用迭代器遍历
         if (node.IsMap()) {
             for (auto itor = node.begin(); itor != node.end(); ++itor) {
                 TraversalNode(
                     itor->second,
-                    name.empty() ? itor->first.Scalar() : name + "." + itor->first.Scalar());
+                    name.empty() ? itor->first.Scalar()
+                                 : name + "." + itor->first.Scalar(),
+                    output);
             }
         }
+        // 当 YAML::Node 为序列型节点，使用下标遍历
         if (node.IsSequence()) {
             for (size_t i = 0; i < node.size(); ++i) {
-                TraversalNode(node[i], name + "." + std::to_string(i));
+                TraversalNode(node[i], name + "." + std::to_string(i), output);
             }
         }
     }
@@ -162,6 +194,9 @@ private:
 private:
     static ConfigVarMap s_data;
 };
+
+/* util functional */
+std::ostream& operator<<(std::ostream& out, const ConfigVarBase::ptr cvb);
 }
 
 #endif
