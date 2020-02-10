@@ -66,8 +66,7 @@ template <
     class FromStringFN = LexicalCast<T, std::string>>
 class ConfigVar : public ConfigVarBase {
 public:
-    typedef std::shared_ptr<ConfigVar>
-        ptr;
+    typedef std::shared_ptr<ConfigVar> ptr;
 
     ConfigVar(const std::string& name, const T& value, const std::string& description)
         : ConfigVarBase(name, description), m_value(value) {}
