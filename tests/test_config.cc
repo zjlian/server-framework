@@ -48,11 +48,12 @@ int main() {
         LOG_ERROR(GET_ROOT_LOGGER(), "non value");
     }
 
-    // std::cout << zjl::Config::Lookup("logs.0.name")->toString() << std::endl;
-    // std::cout << zjl::Config::Lookup("logs.0.level")->toString() << std::endl;
-    // std::cout << zjl::Config::Lookup("logs.0.formatter")->toString() << std::endl;
-    // std::cout << zjl::Config::Lookup("logs.0.formatter.0.type")->toString() << std::endl;
-    // std::cout << zjl::Config::Lookup("logs.0.formatter.0.file")->toString() << std::endl;
+    std::cout << zjl::Config::Lookup("logs.0.name") << std::endl;
+    std::cout << zjl::Config::Lookup("logs.0.level") << std::endl;
+    std::cout << zjl::Config::Lookup("logs.0.formatter") << std::endl;
+    std::cout << zjl::Config::Lookup("logs.0.appender.0.type") << std::endl;
+    std::cout << zjl::Config::Lookup("logs.0.appender.0.file") << std::endl;
+    std::cout << zjl::Config::Lookup("nonexistent") << std::endl;
 
     return 0;
 }
