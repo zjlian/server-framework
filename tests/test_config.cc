@@ -29,23 +29,25 @@ int main() {
 
     zjl::Config::Lookup("system.port", 6666);
     auto port = zjl::Config::Lookup("system.port");
-    std::cout << port->toString() << std::endl;
+    std::cout << port << std::endl;
 
     YAML::Node config;
     try {
-        config = YAML::LoadFile("../config.yml");
+        config = YAML::LoadFile("/home/workspace/c/server-framework/config.yml");
     } catch (const std::exception& e) {
         LOG_FMT_ERROR(GET_ROOT_LOGGER(), "文件加载失败：%s", e.what());
     }
     zjl::Config::LoadFromYAML(config);
+    std::cout << port << std::endl;
 
-    std::cout << port->toString() << std::endl;
     auto log_name = zjl::Config::Lookup("logs.0.name");
     if (log_name) {
         LOG_DEBUG(GET_ROOT_LOGGER(), "has value");
+        std::cout << log_name << std::endl;
     } else {
         LOG_ERROR(GET_ROOT_LOGGER(), "non value");
     }
+
     // std::cout << zjl::Config::Lookup("logs.0.name")->toString() << std::endl;
     // std::cout << zjl::Config::Lookup("logs.0.level")->toString() << std::endl;
     // std::cout << zjl::Config::Lookup("logs.0.formatter")->toString() << std::endl;
