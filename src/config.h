@@ -15,7 +15,7 @@
 
 namespace zjl {
 
-// 配置器的配置项基类
+// @brief 配置器的配置项基类
 class ConfigVarBase {
 public:
     typedef std::shared_ptr<ConfigVarBase> ptr;
@@ -38,11 +38,36 @@ protected:
     std::string m_description; // 配置项的备注
 };
 
-// 通用型配置项的模板类
-template <class T>
+/**
+ * @brief 类型转换仿函数
+ * boost::lexical_cast 的包装，
+ * 因为 boost::lexical_cast 是使用 std::stringstream 实现的类型转换，
+ * 所以仅支持实现了 ostream::operator<< 与 istream::operator>> 的类型,
+ * 可以说默认情况下仅支持 std::string 与各类 Number 类型的双向转换。
+ * 需要转换自定义的类型，可以选择实现对应类型的流操作符，或者将该模板类进行偏特化
+*/
+template <class Target, class Source>
+class LexicalCast {
+public:
+    Target operator()(const Source& source) {
+        return boost::lexical_cast<Target>(source);
+    }
+};
+
+/* @brief 通用型配置项的模板类
+ * 模板参数:
+ *      T               配置项的值的类型
+ *      ToStringFN      {functor<std::string(T&)>} 将配置项的值转换为 std::string
+ *      FromStringFN    {functor<T(const std::string&)>} 将 std::string 转换为配置项的值
+ * */
+template <
+    class T,
+    class ToStringFN = LexicalCast<std::string, T>,
+    class FromStringFN = LexicalCast<T, std::string>>
 class ConfigVar : public ConfigVarBase {
 public:
-    typedef std::shared_ptr<ConfigVar> ptr;
+    typedef std::shared_ptr<ConfigVar>
+        ptr;
 
     ConfigVar(const std::string& name, const T& value, const std::string& description)
         : ConfigVarBase(name, description), m_value(value) {}
@@ -53,8 +78,8 @@ public:
     std::string
     toString() const override {
         try {
-            // 调用 boost::lexical_cast 类型转换器, 失败抛出 bad_lexical_cast 异常
-            return boost::lexical_cast<std::string>(m_value);
+            // 默认 ToStringFN 调用了 boost::lexical_cast 进行类型转换, 失败抛出异常 bad_lexical_cast
+            return ToStringFN()(m_value);
         } catch (std::exception& e) {
             LOG_FMT_ERROR(GET_ROOT_LOGGER(),
                           "ConfigVar::toString exception %s convert: %s to string",
@@ -67,8 +92,8 @@ public:
     bool
     fromString(const std::string& val) override {
         try {
-            // 调用 boost::lexical_cast 类型转换器, 失败抛出 bad_lexical_cast 异常
-            m_value = boost::lexical_cast<T>(val);
+            //  默认 FromStringFN 调用了 boost::lexical_cast 进行类型转换, 失败抛出异常 bad_lexical_cast
+            m_value = FromStringFN()(val);
             return true;
         } catch (std::exception& e) {
             LOG_FMT_ERROR(GET_ROOT_LOGGER(),
