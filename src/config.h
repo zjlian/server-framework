@@ -46,7 +46,7 @@ protected:
  * 可以说默认情况下仅支持 std::string 与各类 Number 类型的双向转换。
  * 需要转换自定义的类型，可以选择实现对应类型的流操作符，或者将该模板类进行偏特化
 */
-template <class Target, class Source>
+template <typename Source, typename Target>
 class LexicalCast {
 public:
     Target operator()(const Source& source) {
@@ -54,7 +54,21 @@ public:
     }
 };
 
-/* @brief 通用型配置项的模板类
+/**
+ * @brief 类型转换仿函数
+ * LexicalCast的偏特化，针对 std::string 到 std::vector<T> 的转换，
+ * 接受可被 YAML::Load() 解析的字符串
+*/
+template <typename T>
+class LexicalCast<std::string, std::vector<T>> {
+public:
+    std::vector<T> operator()(const std::string& source) {
+        // return boost::lexical_cast<Target>(source);
+    }
+};
+
+/**
+ * @brief 通用型配置项的模板类
  * 模板参数:
  *      T               配置项的值的类型
  *      ToStringFN      {functor<std::string(T&)>} 将配置项的值转换为 std::string
@@ -62,8 +76,8 @@ public:
  * */
 template <
     class T,
-    class ToStringFN = LexicalCast<std::string, T>,
-    class FromStringFN = LexicalCast<T, std::string>>
+    class ToStringFN = LexicalCast<T, std::string>,
+    class FromStringFN = LexicalCast<std::string, T>>
 class ConfigVar : public ConfigVarBase {
 public:
     typedef std::shared_ptr<ConfigVar> ptr;
