@@ -2,6 +2,7 @@
 #define SERVER_FRAMEWORK_CONFIG_H
 
 #include "log.h"
+#include "yaml-cpp/yaml.h"
 #include <algorithm>
 #include <boost/lexical_cast.hpp>
 #include <iostream>
@@ -11,11 +12,10 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <yaml-cpp/yaml.h>
 
 namespace zjl {
 
-// @brief 配置器的配置项基类
+// @brief 配置项基类
 class ConfigVarBase {
 public:
     typedef std::shared_ptr<ConfigVarBase> ptr;
@@ -63,7 +63,52 @@ template <typename T>
 class LexicalCast<std::string, std::vector<T>> {
 public:
     std::vector<T> operator()(const std::string& source) {
-        // return boost::lexical_cast<Target>(source);
+        YAML::Node node;
+        try {
+            // 调用 YAML::Load 解析传入的字符串，解析失败会抛出异常
+            node = YAML::Load(source);
+        } catch (const YAML::ParserException& e) {
+            LOG_FMT_ERROR(
+                GET_ROOT_LOGGER(),
+                "LexicalCast<std::string, std::vector>::operator() exception %s",
+                e.what());
+            throw e;
+        }
+        std::vector<T> config_list;
+        // 检查解析后的 node 是否是一个序列型 YAML::Node
+        if (node.IsSequence()) {
+            std::stringstream ss;
+            for (const auto& item : config_list) {
+                ss.str("");
+                ss << item;
+                // 递归解析，直到 T 为基本类型
+                config_list.push_back(LexicalCast<std::string, T>()(ss.str()));
+            }
+        } else {
+            LOG_FMT_INFO(
+                GET_ROOT_LOGGER(),
+                "LexicalCast<std::string, std::vector>::operator() exception %s",
+                "<source> is not a YAML sequence");
+        }
+        return config_list;
+    }
+};
+
+/**
+ * @brief 类型转换仿函数
+ * LexicalCast的偏特化，针对 std::vector<T> 到 std::string 的转换，
+*/
+template <typename T>
+class LexicalCast<std::vector<T>, std::string> {
+public:
+    std::string operator()(const std::vector<T>& source) {
+        YAML::Node node;
+        for (const auto& item : source) {
+            node.push_back(item);
+        }
+        std::stringstream ss;
+        ss << node;
+        return ss.str();
     }
 };
 
@@ -88,8 +133,7 @@ public:
     const T getValue() const { return m_value; }
     void setValue(const T value) { m_value = value; }
     // 返回配置项的值的字符串
-    std::string
-    toString() const override {
+    std::string toString() const override {
         try {
             // 默认 ToStringFN 调用了 boost::lexical_cast 进行类型转换, 失败抛出异常 bad_lexical_cast
             return ToStringFN()(m_value);
@@ -102,8 +146,7 @@ public:
         return "<error>";
     }
 
-    bool
-    fromString(const std::string& val) override {
+    bool fromString(const std::string& val) override {
         try {
             //  默认 FromStringFN 调用了 boost::lexical_cast 进行类型转换, 失败抛出异常 bad_lexical_cast
             m_value = FromStringFN()(val);
@@ -125,7 +168,7 @@ class Config {
 public:
     typedef std::map<std::string, ConfigVarBase::ptr> ConfigVarMap;
 
-    // 查找配置项
+    // 查找配置项，返回 ConfigVarBase 智能指针
     static ConfigVarBase::ptr
     Lookup(const std::string& name) {
         auto itor = s_data.find(name);
@@ -135,7 +178,7 @@ public:
         return itor->second;
     }
 
-    // 查找配置项
+    // 查找配置项，返回指定类型的 ConfigVar 智能指针
     template <class T>
     static typename ConfigVar<T>::ptr
     Lookup(const std::string& name) {
@@ -146,7 +189,7 @@ public:
         return std::dynamic_pointer_cast<ConfigVar<T>>(Lookup(name));
     }
 
-    // 检查并创建配置项
+    // 创建或更新配置项
     template <class T>
     static typename ConfigVar<T>::ptr
     Lookup(const std::string& name, const T& value, const std::string& description = "") {
@@ -180,11 +223,11 @@ public:
         for (const auto& item : node_list) {
             auto itor = s_data.find(item.first);
             if (itor != s_data.end()) {
-                // 已存在同名配置项这覆盖当
+                // 已存在同名配置项则覆盖更新
                 s_data[item.first]->fromString(item.second.as<std::string>());
             } else {
                 // 创建配置项
-                // TODO 创建不同类型的配置项
+                // 约定大于配置原则，配置文件中出现了非约定的配置项时，仅仅创建字符类型的配置项，不会去解析他的类型
                 Lookup<std::string>(
                     item.first,
                     item.second.as<std::string>());
@@ -234,7 +277,7 @@ private:
 };
 
 /* util functional */
-std::ostream& operator<<(std::ostream& out, const ConfigVarBase::ptr cvb);
+std::ostream& operator<<(std::ostream& out, const ConfigVarBase& cvb);
 }
 
 #endif
