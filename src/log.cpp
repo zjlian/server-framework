@@ -303,7 +303,7 @@ __LoggerManager::__LoggerManager() {
 }
 
 void __LoggerManager::init() {
-    // TODO 通过读取配置文件信息，创建需要的日志器
+    // TODO 通过读取配置文件，更新用户修改的配置
 
     // 默认的生成一个输出到 stdout 的 debug 级输出器
     auto global_logger = std::make_shared<Logger>();
