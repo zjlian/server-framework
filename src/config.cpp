@@ -4,12 +4,8 @@ namespace zjl {
 
 Config::ConfigVarMap Config::s_data;
 
-std::ostream& operator<<(std::ostream& out, const ConfigVarBase::ptr cvb) {
-    if (cvb) {
-        out << cvb->getName() << ": " << cvb->toString();
-    } else {
-        out << "<empty shared ptr>";
-    }
+std::ostream& operator<<(std::ostream& out, const ConfigVarBase& cvb) {
+    out << cvb->getName() << ": " << cvb->toString();
     return out;
 }
 }
