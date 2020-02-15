@@ -6,8 +6,10 @@
 #include <algorithm>
 #include <boost/lexical_cast.hpp>
 #include <iostream>
+#include <list>
 #include <map>
 #include <memory>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -56,7 +58,7 @@ public:
 
 /**
  * @brief 类型转换仿函数
- * LexicalCast的偏特化，针对 std::string 到 std::vector<T> 的转换，
+ * LexicalCast 的偏特化，针对 std::string 到 std::vector<T> 的转换，
  * 接受可被 YAML::Load() 解析的字符串
 */
 template <typename T>
@@ -64,22 +66,15 @@ class LexicalCast<std::string, std::vector<T>> {
 public:
     std::vector<T> operator()(const std::string& source) {
         YAML::Node node;
-        try {
-            // 调用 YAML::Load 解析传入的字符串，解析失败会抛出异常
-            node = YAML::Load(source);
-        } catch (const YAML::ParserException& e) {
-            LOG_FMT_ERROR(
-                GET_ROOT_LOGGER(),
-                "LexicalCast<std::string, std::vector>::operator() exception %s",
-                e.what());
-            throw e;
-        }
+        // 调用 YAML::Load 解析传入的字符串，解析失败会抛出异常
+        node = YAML::Load(source);
         std::vector<T> config_list;
         // 检查解析后的 node 是否是一个序列型 YAML::Node
         if (node.IsSequence()) {
             std::stringstream ss;
-            for (const auto& item : config_list) {
+            for (const auto& item : node) {
                 ss.str("");
+                // 利用 YAML::Node 实现的 operator<<() 将 node 转换为字符串
                 ss << item;
                 // 递归解析，直到 T 为基本类型
                 config_list.push_back(LexicalCast<std::string, T>()(ss.str()));
@@ -96,15 +91,64 @@ public:
 
 /**
  * @brief 类型转换仿函数
- * LexicalCast的偏特化，针对 std::vector<T> 到 std::string 的转换，
+ * LexicalCast 的偏特化，针对 std::list<T> 到 std::string 的转换，
 */
 template <typename T>
 class LexicalCast<std::vector<T>, std::string> {
 public:
     std::string operator()(const std::vector<T>& source) {
         YAML::Node node;
+        // 暴力解析，将 T 解析成字符串，在解析回 YAML::Node 插入 node 的尾部，
+        // 最后通过 std::stringstream 与调用 yaml-cpp 库实现的 operator<<() 将 node 转换为字符串
         for (const auto& item : source) {
-            node.push_back(item);
+            // 调用 LexicalCast 递归解析，知道 T 为基本类型
+            node.push_back(YAML::Load(LexicalCast<T, std::string>()(item)));
+        }
+        std::stringstream ss;
+        ss << node;
+        return ss.str();
+    }
+};
+
+/**
+ * @brief 类型转换仿函数
+ * LexicalCast 的偏特化，针对 std::string 到 std::list<T> 的转换，
+*/
+template <typename T>
+class LexicalCast<std::string, std::list<T>> {
+public:
+    std::list<T> operator()(const std::string& source) {
+        YAML::Node node;
+        node = YAML::Load(source);
+        std::list<T> config_list;
+        if (node.IsSequence()) {
+            std::stringstream ss;
+            for (const auto& item : node) {
+                ss.str("");
+                ss << item;
+                config_list.push_back(LexicalCast<std::string, T>()(ss.str()));
+            }
+        } else {
+            LOG_FMT_INFO(
+                GET_ROOT_LOGGER(),
+                "LexicalCast<std::string, std::list>::operator() exception %s",
+                "<source> is not a YAML sequence");
+        }
+        return config_list;
+    }
+};
+
+/**
+ * @brief 类型转换仿函数
+ * LexicalCast 的偏特化，针对 std::list<T> 到 std::string 的转换，
+*/
+template <typename T>
+class LexicalCast<std::list<T>, std::string> {
+public:
+    std::string operator()(const std::list<T>& source) {
+        YAML::Node node;
+        for (const auto& item : source) {
+            node.push_back(YAML::Load(LexicalCast<T, std::string>()(item)));
         }
         std::stringstream ss;
         ss << node;
@@ -145,7 +189,7 @@ public:
         }
         return "<error>";
     }
-
+    // 将 yaml 文本转换为配置项的值
     bool fromString(const std::string& val) override {
         try {
             //  默认 FromStringFN 调用了 boost::lexical_cast 进行类型转换, 失败抛出异常 bad_lexical_cast
@@ -215,44 +259,47 @@ public:
     }
 
     // 从 YAML::Node 中载入配置
-    static void
-    LoadFromYAML(const YAML::Node& root) {
+    static void LoadFromYAML(const YAML::Node& root) {
         std::vector<std::pair<std::string, YAML::Node>> node_list;
         TraversalNode(root, "", node_list);
         // 遍历结果，更新 s_data
+        std::stringstream ss;
         for (const auto& item : node_list) {
             auto itor = s_data.find(item.first);
             if (itor != s_data.end()) {
-                // 已存在同名配置项则覆盖更新
-                s_data[item.first]->fromString(item.second.as<std::string>());
+                ss.str("");
+                ss << item.second;
+                // 同名配置项则覆盖更新
+                try {
+                    s_data[item.first]->fromString(ss.str());
+                } catch (const std::exception& e) {
+                    LOG_FMT_ERROR(
+                        GET_ROOT_LOGGER(),
+                        "Config::LoadFromYAML exception what=%s",
+                        e.what());
+                }
+
             } else {
-                // 创建配置项
-                // 约定大于配置原则，配置文件中出现了非约定的配置项时，仅仅创建字符类型的配置项，不会去解析他的类型
-                Lookup<std::string>(
-                    item.first,
-                    item.second.as<std::string>());
+                // 约定大于配置原则，不对未约定的配置项进行解析
             }
         }
     }
 
 private:
     // 遍历 YAML::Node 对象，并将遍历结果扁平化存到列表里返回
-    static void
-    TraversalNode(const YAML::Node& node, const std::string& name,
-                  std::vector<std::pair<std::string, YAML::Node>>& output) {
-        // 当 YAML::Node 为普通值节点，将结果存入 output
-        if (node.IsScalar()) {
-            auto itor = std::find_if(
-                output.begin(),
-                output.end(),
-                [&name](const std::pair<std::string, YAML::Node> item) {
-                    return item.first == name;
-                });
-            if (itor != output.end()) {
-                itor->second = node;
-            } else {
-                output.push_back(std::make_pair(name, node));
-            }
+    static void TraversalNode(const YAML::Node& node, const std::string& name,
+                              std::vector<std::pair<std::string, YAML::Node>>& output) {
+        // 将 YAML::Node 存入 output
+        auto itor = std::find_if(
+            output.begin(),
+            output.end(),
+            [&name](const std::pair<std::string, YAML::Node> item) {
+                return item.first == name;
+            });
+        if (itor != output.end()) {
+            itor->second = node;
+        } else {
+            output.push_back(std::make_pair(name, node));
         }
         // 当 YAML::Node 为映射型节点，使用迭代器遍历
         if (node.IsMap()) {
