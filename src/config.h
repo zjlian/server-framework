@@ -157,6 +157,101 @@ public:
 };
 
 /**
+ * @brief 类型转换仿函数
+ * LexicalCast 的偏特化，针对 std::string 到 std::map<std::string, T> 的转换，
+*/
+template <typename T>
+class LexicalCast<std::string, std::map<std::string, T>> {
+public:
+    std::map<std::string, T> operator()(const std::string& source) {
+        YAML::Node node;
+        node = YAML::Load(source);
+        std::map<std::string, T> config_map;
+        if (node.IsMap()) {
+            std::stringstream ss;
+            for (const auto& item : node) {
+                ss.str("");
+                ss << item.second;
+                config_map.insert(std::make_pair(
+                    item.first.as<std::string>(),
+                    LexicalCast<std::string, T>()(ss.str())));
+            }
+        } else {
+            LOG_FMT_INFO(
+                GET_ROOT_LOGGER(),
+                "LexicalCast<std::string, std::map>::operator() exception %s",
+                "<source> is not a YAML map");
+        }
+        return config_map;
+    }
+};
+
+/**
+ * @brief 类型转换仿函数
+ * LexicalCast 的偏特化，针对 std::map<std::string, T> 到 std::string 的转换，
+*/
+template <typename T>
+class LexicalCast<std::map<std::string, T>, std::string> {
+public:
+    std::string operator()(const std::map<std::string, T>& source) {
+        YAML::Node node;
+        for (const auto& item : source) {
+            node[item.first] = YAML::Load(LexicalCast<T, std::string>()(item.second));
+        }
+        std::stringstream ss;
+        ss << node;
+        return ss.str();
+    }
+};
+
+/**
+ * @brief 类型转换仿函数
+ * LexicalCast 的偏特化，针对 std::string 到 std::set<T> 的转换，
+*/
+template <typename T>
+class LexicalCast<std::string, std::set<T>> {
+public:
+    std::set<T> operator()(const std::string& source) {
+        YAML::Node node;
+        node = YAML::Load(source);
+        std::set<T> config_set;
+        if (node.IsSequence()) {
+            std::stringstream ss;
+            for (const auto& item : node) {
+                ss.str("");
+                ss << item;
+                config_set.insert(LexicalCast<std::string, T>()(ss.str()));
+                // config_list.push_back(LexicalCast<std::string, T>()(ss.str()));
+            }
+        } else {
+            LOG_FMT_INFO(
+                GET_ROOT_LOGGER(),
+                "LexicalCast<std::string, std::list>::operator() exception %s",
+                "<source> is not a YAML sequence");
+        }
+        return config_set;
+    }
+};
+
+/**
+ * @brief 类型转换仿函数
+ * LexicalCast 的偏特化，针对 std::set<T> 到 std::string 的转换，
+*/
+template <typename T>
+class LexicalCast<std::set<T>, std::string> {
+public:
+    std::string operator()(const std::set<T>& source) {
+        YAML::Node node;
+        for (const auto& item : source) {
+            node.push_back(YAML::Load(LexicalCast<T, std::string>()(item)));
+        }
+        std::stringstream ss;
+        ss << node;
+        return ss.str();
+    }
+};
+
+/**
  * @brief 通用型配置项的模板类
  * 模板参数:
  *      T               配置项的值的类型
