@@ -5,6 +5,7 @@
 #include "yaml-cpp/yaml.h"
 #include <algorithm>
 #include <boost/lexical_cast.hpp>
+#include <exception>
 #include <iostream>
 #include <list>
 #include <map>
@@ -41,7 +42,7 @@ protected:
 };
 
 /**
- * @brief 类型转换仿函数
+ * @brief YAML格式字符串到其他类型的转换仿函数
  * boost::lexical_cast 的包装，
  * 因为 boost::lexical_cast 是使用 std::stringstream 实现的类型转换，
  * 所以仅支持实现了 ostream::operator<< 与 istream::operator>> 的类型,
@@ -57,7 +58,7 @@ public:
 };
 
 /**
- * @brief 类型转换仿函数
+ * @brief YAML格式字符串到其他类型的转换仿函数
  * LexicalCast 的偏特化，针对 std::string 到 std::vector<T> 的转换，
  * 接受可被 YAML::Load() 解析的字符串
 */
@@ -90,7 +91,7 @@ public:
 };
 
 /**
- * @brief 类型转换仿函数
+ * @brief YAML格式字符串到其他类型的转换仿函数
  * LexicalCast 的偏特化，针对 std::list<T> 到 std::string 的转换，
 */
 template <typename T>
@@ -111,7 +112,7 @@ public:
 };
 
 /**
- * @brief 类型转换仿函数
+ * @brief YAML格式字符串到其他类型的转换仿函数
  * LexicalCast 的偏特化，针对 std::string 到 std::list<T> 的转换，
 */
 template <typename T>
@@ -139,7 +140,7 @@ public:
 };
 
 /**
- * @brief 类型转换仿函数
+ * @brief YAML格式字符串到其他类型的转换仿函数
  * LexicalCast 的偏特化，针对 std::list<T> 到 std::string 的转换，
 */
 template <typename T>
@@ -157,7 +158,7 @@ public:
 };
 
 /**
- * @brief 类型转换仿函数
+ * @brief YAML格式字符串到其他类型的转换仿函数
  * LexicalCast 的偏特化，针对 std::string 到 std::map<std::string, T> 的转换，
 */
 template <typename T>
@@ -187,7 +188,7 @@ public:
 };
 
 /**
- * @brief 类型转换仿函数
+ * @brief YAML格式字符串到其他类型的转换仿函数
  * LexicalCast 的偏特化，针对 std::map<std::string, T> 到 std::string 的转换，
 */
 template <typename T>
@@ -205,7 +206,7 @@ public:
 };
 
 /**
- * @brief 类型转换仿函数
+ * @brief YAML格式字符串到其他类型的转换仿函数
  * LexicalCast 的偏特化，针对 std::string 到 std::set<T> 的转换，
 */
 template <typename T>
@@ -234,7 +235,7 @@ public:
 };
 
 /**
- * @brief 类型转换仿函数
+ * @brief YAML格式字符串到其他类型的转换仿函数
  * LexicalCast 的偏特化，针对 std::set<T> 到 std::string 的转换，
 */
 template <typename T>
@@ -265,6 +266,7 @@ template <
 class ConfigVar : public ConfigVarBase {
 public:
     typedef std::shared_ptr<ConfigVar> ptr;
+    typedef T element_type;
 
     ConfigVar(const std::string& name, const T& value, const std::string& description)
         : ConfigVarBase(name, description), m_value(value) {}
@@ -321,11 +323,19 @@ public:
     template <class T>
     static typename ConfigVar<T>::ptr
     Lookup(const std::string& name) {
-        /* 从 map 取出的配置项对象的类型为基类 ConfigVarBase，
-         * 但我们需要使用其派生类的成员函数和变量，
-         * 所以需要进行一次明确类型的显示转换
-         */
-        return std::dynamic_pointer_cast<ConfigVar<T>>(Lookup(name));
+        auto base_ptr = Lookup(name);
+        if (!base_ptr) {
+            return nullptr;
+        }
+        // 配置项存在，尝试转换成指定的类型
+        auto ptr = std::dynamic_pointer_cast<ConfigVar<T>>(base_ptr);
+        // 如果 std::dynamic_pointer_cast 转型失败会返回一个空的智能指针
+        // 调用 operator bool() 来判断
+        if (!ptr) {
+            LOG_ERROR(GET_ROOT_LOGGER(), "Config::Lookup<T> exception, 无法转换 ConfigVar<T> 的实际类型到模板参数类型 T");
+            throw std::bad_cast();
+        }
+        return ptr;
     }
 
     // 创建或更新配置项
