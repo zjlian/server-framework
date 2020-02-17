@@ -39,3 +39,17 @@ test_map:
   map_3: 3000
 
 test_set: [1000, 2000, 3000, 1000, 2000, 3000]
+
+user:
+  goods:
+    name: 《书》
+    price: 99.99
+  goods_list:
+    - name: 商品1
+      price: 10
+    - name: 商品2
+      price: 10
+    - name: 商品3
+      price: 10
+    - name: 商品4
+      price: 10

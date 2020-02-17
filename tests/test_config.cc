@@ -5,6 +5,7 @@
 #include <iostream>
 #include <list>
 #include <map>
+#include <ostream>
 #include <vector>
 
 // 创建默认配置项
@@ -20,6 +21,58 @@ auto config_test_map = zjl::Config::Lookup<std::map<std::string, std::string>>(
                     std::make_pair("map3", "srting")});
 auto config_test_set = zjl::Config::Lookup<std::set<int>>(
     "test_set", std::set<int>{10, 20, 30});
+
+// ================== 自定义类型测试 ======================
+struct Goods {
+    std::string name;
+    double price;
+
+    std::string toString() const {
+        std::stringstream ss;
+        ss << "**" << name << "** $" << price;
+        return ss.str();
+    }
+};
+
+std::ostream& operator<<(std::ostream& out, const Goods& g) {
+    out << g.toString();
+    return out;
+}
+
+namespace zjl {
+// zjl::LexicalCast 针对自定义类型的偏特化
+template <>
+class LexicalCast<std::string, Goods> {
+public:
+    Goods operator()(const std::string& source) {
+        auto node = YAML::Load(source);
+        Goods g;
+        if (node.IsMap()) {
+            g.name = node["name"].as<std::string>();
+            g.price = node["price"].as<double>();
+        }
+        return g;
+    }
+};
+
+template <>
+class LexicalCast<Goods, std::string> {
+public:
+    std::string operator()(const Goods& source) {
+        YAML::Node node;
+        node["name"] = source.name;
+        node["price"] = source.price;
+        std::stringstream ss;
+        ss << node;
+        return ss.str();
+    }
+};
+}
+
+auto config_test_user_type = zjl::Config::Lookup<Goods>("user.goods", Goods{});
+auto config_test_uset_type_list = zjl::Config::Lookup<std::vector<Goods>>("user.goods_list", std::vector<Goods>{});
+
+// ===============================================
 
 // 测试通过解析 yaml 文件更新配置项
 void TEST_loadConfig(const std::string& path) {
@@ -41,6 +94,8 @@ void TEST_ConfigVarToString() {
     std::cout << *config_test_linklist << std::endl;
     std::cout << *config_test_map << std::endl;
     std::cout << *config_test_set << std::endl;
+    std::cout << *config_test_user_type << std::endl;
+    std::cout << *config_test_uset_type_list << std::endl;
 }
 
 // 测试获取并使用配置的值
@@ -57,6 +112,7 @@ void TEST_GetConfigVarValue() {
     TSEQ(config_test_list);
     TSEQ(config_test_linklist);
     TSEQ(config_test_set);
+    TSEQ(config_test_uset_type_list);
 #undef TSEQ
 // 遍历映射容器的宏
 #define TMAP(config_var)                                                \
