@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <boost/lexical_cast.hpp>
 #include <exception>
+#include <functional>
 #include <iostream>
 #include <list>
 #include <map>
@@ -266,18 +267,29 @@ template <
 class ConfigVar : public ConfigVarBase {
 public:
     typedef std::shared_ptr<ConfigVar> ptr;
-    typedef T element_type;
+    typedef std::function<void(const T& old_value, const T& new_value)> onChangeCallback;
 
     ConfigVar(const std::string& name, const T& value, const std::string& description)
         : ConfigVarBase(name, description), m_value(value) {}
 
     const T getValue() const { return m_value; }
-    void setValue(const T value) { m_value = value; }
+    // 设置配置项的值
+    void setValue(const T value) {
+        if (value == m_value) {
+            return;
+        }
+        auto old_value = m_value;
+        m_value = value;
+        // 值被修改，调用所有的变更事件处理器
+        for (const auto& pair : m_callback_map) {
+            pair.second(old_value, m_value);
+        }
+    }
     // 返回配置项的值的字符串
     std::string toString() const override {
         try {
             // 默认 ToStringFN 调用了 boost::lexical_cast 进行类型转换, 失败抛出异常 bad_lexical_cast
-            return ToStringFN()(m_value);
+            return ToStringFN()(getValue());
         } catch (std::exception& e) {
             LOG_FMT_ERROR(GET_ROOT_LOGGER(),
                           "ConfigVar::toString exception %s convert: %s to string",
@@ -290,7 +302,7 @@ public:
     bool fromString(const std::string& val) override {
         try {
             //  默认 FromStringFN 调用了 boost::lexical_cast 进行类型转换, 失败抛出异常 bad_lexical_cast
-            m_value = FromStringFN()(val);
+            setValue(FromStringFN()(val));
             return true;
         } catch (std::exception& e) {
             LOG_FMT_ERROR(GET_ROOT_LOGGER(),
@@ -301,8 +313,32 @@ public:
         return false;
     }
 
+    // 增加配置项变更事件处理器
+    void addListener(std::string key, onChangeCallback cb) {
+        m_callback_map[key] = cb;
+    }
+    // 删除配置项变更事件处理器
+    void delListener(std::string key) {
+        m_callback_map.erase(key);
+    }
+
+    // 获取配置项变更事件处理器
+    onChangeCallback getListener(std::string key) {
+        auto iter = m_callback_map.find(key);
+        if (iter == m_callback_map.end()) {
+            return nullptr;
+        }
+        return iter->second;
+    }
+
+    // 清除所有配置项变更事件处理器
+    void clearListener() {
+        m_callback_map.clear();
+    }
+
 private:
     T m_value; // 配置项的值
+    std::map<std::string, onChangeCallback> m_callback_map;
 };
 
 class Config {
