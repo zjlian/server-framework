@@ -61,7 +61,9 @@ public:
     static std::string levelToString(LogLevel::Level level);
 };
 
-// 日志信息
+/**
+ * @brief 日志消息类
+*/
 class LogEvent {
 public:
     typedef std::shared_ptr<LogEvent> ptr;
@@ -92,11 +94,14 @@ private:
     std::string m_content;
 };
 
-//日志格式化器
+/**
+ * @brief 日志格式化器
+ * 构造时传入日志格式化规则的字符串，调用 format() 传入 LogEvent 实例，返回格式化后的字符串
+*/
 class LogFormatter {
 public:
     typedef std::shared_ptr<LogFormatter> ptr;
-
+    
     class FormatItem {
     public:
         typedef std::shared_ptr<FormatItem> ptr;
