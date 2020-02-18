@@ -149,7 +149,7 @@ int main() {
     });
     TEST_ConfigVarToString();
     TEST_GetConfigVarValue();
-    TEST_loadConfig("/home/workspace/c/server-framework/config.yml");
+    TEST_loadConfig("/home/workspace/c/server-framework/tests/test_config.yml");
     TEST_ConfigVarToString();
     TEST_GetConfigVarValue();
     TEST_nonexistentConfig();
