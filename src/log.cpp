@@ -312,7 +312,12 @@ void __LoggerManager::init() {
 }
 
 Logger::ptr __LoggerManager::getLogger(const std::string& name) {
-    return m_logger_map[name];
+    auto iter = m_logger_map.find(name);
+    if (iter == m_logger_map.end()) {
+        std::cerr << "__LoggerManager::getLogger exception, name = " << name << " 的日志器不存在" << std::endl;
+        throw std::runtime_error("__LoggerManager::getLogger() 传入了不存在的日志器名称 name");
+    }
+    return iter->second;
 }
 
 Logger::ptr __LoggerManager::getGlobal() {
