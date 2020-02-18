@@ -11,11 +11,14 @@
 namespace zjl {
 
 // 获取linux下线程的唯一id
-int64_t getThreadID();
+inline int64_t getThreadID();
 // 获取协程id
-int64_t getFiberID();
+inline int64_t getFiberID();
 
-// 简单单例包装类
+/**
+ * @brief 简单的单例包装类
+ * 调用 Singleton::GetInstance 返回被包装类型的原生指针
+*/
 template <class T>
 class Singleton final {
 public:
@@ -28,6 +31,10 @@ private:
     Singleton() = default;
 };
 
+/**
+ * @brief 简单的单例包装类
+ * 调用 Singleton::GetInstance 返回被包装类型的 std::shared_ptr 智能指针
+*/
 template <class T>
 class SingletonPtr final {
 public:
