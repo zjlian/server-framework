@@ -37,8 +37,18 @@ void TEST_macroLogger() {
     LOG_FMT_FATAL(logger, "消息消息 %s", "fatal");
 }
 
+void TEST_getNonexistentLogger() {
+    std::cout << ">>>>>> Call TEST_getNonexistentLogger 测试获取不存在的日志器 <<<<<<" << std::endl;
+    try {
+        zjl::LoggerManager::GetInstance()->getLogger("nonexistent");
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << '\n';
+    }
+}
+
 int main() {
     TEST_defaultLogger();
     TEST_macroLogger();
+    TEST_getNonexistentLogger();
     return 0;
 }
