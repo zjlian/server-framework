@@ -1,0 +1,36 @@
+test_list:
+  - 1
+  - 2
+  - 3
+
+test_linklist:
+  - asdasd
+  - asdasd
+  - asdasd
+  - asdasd
+  - asdasd
+  - asdasd
+  - asdasd
+  - asdasd
+  - asdasd
+
+test_map:
+  map_1: 1000
+  map_2: 2000
+  map_3: 3000
+
+test_set: [1000, 2000, 3000, 1000, 2000, 3000]
+
+user:
+  goods:
+    name: 《书》
+    price: 99.99
+  goods_list:
+    - name: 商品1
+      price: 10
+    - name: 商品2
+      price: 10
+    - name: 商品3
+      price: 10
+    - name: 商品4
+      price: 10
