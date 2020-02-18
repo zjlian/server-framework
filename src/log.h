@@ -44,6 +44,7 @@
 #define LOG_FMT_FATAL(logger, format, argv...) LOG_FMT_LEVEL(logger, zjl::LogLevel::FATAL, format, argv)
 
 #define GET_ROOT_LOGGER() zjl::LoggerManager::GetInstance()->getGlobal()
+#define GET_LOGGER(name) zjl::LoggerManager::GetInstance()->getLogger(name)
 
 namespace zjl {
 // 日志级别
@@ -180,7 +181,9 @@ private:
     std::ofstream m_file_stream;
 };
 
-// 日志器的管理器
+/**
+ * @brief 日志器的管理器
+*/
 class __LoggerManager {
 public:
     typedef std::shared_ptr<__LoggerManager> ptr;
@@ -195,6 +198,9 @@ private:
     std::map<std::string, Logger::ptr> m_logger_map;
 };
 
+/**
+ * @brief __LoggerManager 的单例类
+*/
 typedef SingletonPtr<__LoggerManager> LoggerManager;
 }
 #endif //SERVER_FRAMEWORK_LOG_H
