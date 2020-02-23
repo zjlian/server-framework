@@ -1,18 +1,40 @@
+# logs 配置格式
+# logs:
+#   - name:      [日志名称]
+#     level:     [日志等级，可选类型为 0: unknow, 1: debug, 2: info, 3: warn, 4: error, 5: fatal]
+#     formatter: [日志打印格式，支持以下特殊符号：
+#                   %p    日志等级
+#                   %f    打印日志所在的源文件名
+#                   %l    打印日志所在的行号
+#                   %d    打印日志时的时间
+#                   %t    打印日志的线程号
+#                   %F    打印日志的协程号
+#                   %m    日志内容
+#                   %n    换行
+#                   %%    百分号
+#                   %T    制表符
+#                ]
+#     appender:
+#       - type:      [日志输出器类型，可选类型为 0 和 1， 分别对应 StdoutLogAppender, FileLogAppender]
+#         file:      [日志输出的目标文件，当 type 为 FileLogAppender 时才需要提供]
+#         level:     [可选配置，日志输出器的等级，若没提供则继承所在 log 的 level]
+#         formatter: [可选配置，日志打印格式，若没提供则继承所在 log 的 formatter]
+
 logs:
-  - name: root
-    level: info
+  - name: global
+    level: 1
     formatter: "[%d] [%p] [%f:%l]%T%m%n"
     appender:
-      - type: FileLogAppender
-        file: /home/log/zjlsf_root_log.txt
-      - type: StdoutLogAppender
+      - type: 1
+        level: 2
+        file: /home/log/sftest_root_log.txt
+      - type: 0
   - name: system
-    level: debug
-    formatter: "[%d] [%p] [%f:%l]%T%m%n"
+    level: 4
+    formatter: "[%d] [%p] [%f]%T%m%n"
     appender:
-      - type: FileLogAppender
-        file: /home/log/zjlsf_system_log.txt
-      - type: StdoutLogAppender
+      - type: 1
+        file: /home/log/sftest_system_log.txt
 
 system:
   port: 8088

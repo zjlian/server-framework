@@ -5,7 +5,7 @@ project(server_framework)
 # SET(CMAKE_CXX_COMPILER "/usr/bin/g++-9")
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O0 -ggdb -std=c++14 -Wall -Wno-deprecated -Werror -Wno-unused-function")
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 
 # 引入boost
 #set(Boost_USE_STATIC_LIBS ON)
