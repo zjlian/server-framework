@@ -152,12 +152,22 @@ std::string LogLevel::levelToString(LogLevel::Level level) {
         case FATAL:
             result = "FATAL";
             break;
+        case UNKNOWN:
+            result = "UNKNOWN";
+            break;
     }
     return result;
 }
 
-Logger::Logger(const std::string& name, const std::string& pattern)
-    : m_name(name), m_level(LogLevel::DEBUG), m_format_pattern(pattern) {
+Logger::Logger()
+    : m_name("default"),
+      m_level(LogLevel::DEBUG),
+      m_format_pattern("[%d] [%p] [%f:%l@%t:%F]%T%m%n") {
+    m_formatter.reset(new LogFormatter(m_format_pattern));
+}
+
+Logger::Logger(const std::string& name, LogLevel::Level level, const std::string& pattern)
+    : m_name(name), m_level(level), m_format_pattern(pattern) {
     m_formatter.reset(new LogFormatter(pattern));
 }
 
@@ -228,6 +238,12 @@ FileLogAppender::FileLogAppender(const std::string& filename, LogLevel::Level le
     : LogAppender(level), m_filename(filename) {
     reopen();
 }
+
+// FileLogAppender::~FileLogAppender() override {
+//     if (!m_file_stream) {
+//         m_file_stream.close();
+//     }
+// }
 
 bool FileLogAppender::reopen() {
     // 使用 fstream::operator!() 判断文件是否被正确打开
@@ -302,13 +318,56 @@ __LoggerManager::__LoggerManager() {
     init();
 }
 
+void __LoggerManager::ensureGlobalLoggerExists() {
+    auto iter = m_logger_map.find("global");
+    if (iter == m_logger_map.end()) { // 日志器 map 里不存在全局日志器
+        auto global_logger = std::make_shared<Logger>();
+        global_logger->addAppender(std::make_shared<StdoutLogAppender>());
+        m_logger_map.insert(std::make_pair("global", std::move(global_logger)));
+    } else if (!iter->second) { // 存在同名的键，但指针为空
+        iter->second = std::make_shared<Logger>();
+        iter->second->addAppender(std::make_shared<StdoutLogAppender>());
+    }
+}
+
 void __LoggerManager::init() {
     // TODO 通过读取配置文件，更新用户修改的配置
-
-    // 默认的生成一个输出到 stdout 的 debug 级输出器
-    auto global_logger = std::make_shared<Logger>();
-    global_logger->addAppender(std::make_shared<StdoutLogAppender>());
-    m_logger_map.insert(std::make_pair("global", global_logger));
+    auto config = Config::Lookup<std::vector<LogConfig>>("logs");
+    const auto& config_log_list = config->getValue();
+    for (const auto& config_log : config_log_list) {
+        // 删除已存在的同名的 logger
+        m_logger_map.erase(config_log.name);
+        auto logger = std::make_shared<Logger>(
+            config_log.name, config_log.level, config_log.formatter);
+        for (const auto& config_app : config_log.appender) {
+            LogAppender::ptr appender;
+            switch (config_app.type) {
+                // 输出到终端的输出器
+                case LogAppenderConfig::Stdout:
+                    appender = std::make_shared<StdoutLogAppender>(config_app.level);
+                    break;
+                // 输出到文件的输出器
+                case LogAppenderConfig::File:
+                    appender = std::make_shared<FileLogAppender>(
+                        config_app.file, config_app.level);
+                    break;
+                default:
+                    std::cerr << "LoggerManager::init exception 无效的 appender 配置值，appender.type=" << config_app.type << std::endl;
+                    break;
+            }
+            // 如果定义了 appender 的日志格式，为其创建专属的 formatter
+            // 否则在其加入 logger 时，会被设置为 logger 所拥有的 formatter
+            if (!config_app.formatter.empty()) {
+                appender->setFormatter(
+                    std::make_shared<LogFormatter>(config_app.formatter));
+            }
+            logger->addAppender(std::move(appender));
+        }
+        std::cout << "成功创建日志器 " << config_log.name << std::endl;
+        m_logger_map.insert(std::make_pair(config_log.name, std::move(logger)));
+    }
+    // 确保存在一个全局的日志器
+    ensureGlobalLoggerExists();
 }
 
 Logger::ptr __LoggerManager::getLogger(const std::string& name) {
