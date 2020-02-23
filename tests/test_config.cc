@@ -154,5 +154,9 @@ int main() {
     TEST_GetConfigVarValue();
     TEST_nonexistentConfig();
 
+    YAML::Node node;
+    auto str = node["node"] ? node["node"].as<std::string>() : "";
+    std::cout << str << std::endl;
+
     return 0;
 }
