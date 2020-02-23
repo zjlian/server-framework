@@ -1,7 +1,7 @@
 #ifndef SERVER_FRAMEWORK_CONFIG_H
 #define SERVER_FRAMEWORK_CONFIG_H
 
-#include "log.h"
+// #include "log.h"
 #include "yaml-cpp/yaml.h"
 #include <algorithm>
 #include <boost/lexical_cast.hpp>
@@ -82,10 +82,10 @@ public:
                 config_list.push_back(LexicalCast<std::string, T>()(ss.str()));
             }
         } else {
-            LOG_FMT_INFO(
-                GET_ROOT_LOGGER(),
-                "LexicalCast<std::string, std::vector>::operator() exception %s",
-                "<source> is not a YAML sequence");
+            // LOG_FMT_INFO(
+            //     GET_ROOT_LOGGER(),
+            //     "LexicalCast<std::string, std::vector>::operator() exception %s",
+            //     "<source> is not a YAML sequence");
         }
         return config_list;
     }
@@ -131,10 +131,10 @@ public:
                 config_list.push_back(LexicalCast<std::string, T>()(ss.str()));
             }
         } else {
-            LOG_FMT_INFO(
-                GET_ROOT_LOGGER(),
-                "LexicalCast<std::string, std::list>::operator() exception %s",
-                "<source> is not a YAML sequence");
+            // LOG_FMT_INFO(
+            //     GET_ROOT_LOGGER(),
+            //     "LexicalCast<std::string, std::list>::operator() exception %s",
+            //     "<source> is not a YAML sequence");
         }
         return config_list;
     }
@@ -179,10 +179,10 @@ public:
                     LexicalCast<std::string, T>()(ss.str())));
             }
         } else {
-            LOG_FMT_INFO(
-                GET_ROOT_LOGGER(),
-                "LexicalCast<std::string, std::map>::operator() exception %s",
-                "<source> is not a YAML map");
+            // LOG_FMT_INFO(
+            //     GET_ROOT_LOGGER(),
+            //     "LexicalCast<std::string, std::map>::operator() exception %s",
+            //     "<source> is not a YAML map");
         }
         return config_map;
     }
@@ -226,10 +226,10 @@ public:
                 // config_list.push_back(LexicalCast<std::string, T>()(ss.str()));
             }
         } else {
-            LOG_FMT_INFO(
-                GET_ROOT_LOGGER(),
-                "LexicalCast<std::string, std::list>::operator() exception %s",
-                "<source> is not a YAML sequence");
+            // LOG_FMT_INFO(
+            //     GET_ROOT_LOGGER(),
+            //     "LexicalCast<std::string, std::list>::operator() exception %s",
+            //     "<source> is not a YAML sequence");
         }
         return config_set;
     }
@@ -291,10 +291,15 @@ public:
             // 默认 ToStringFN 调用了 boost::lexical_cast 进行类型转换, 失败抛出异常 bad_lexical_cast
             return ToStringFN()(getValue());
         } catch (std::exception& e) {
-            LOG_FMT_ERROR(GET_ROOT_LOGGER(),
-                          "ConfigVar::toString exception %s convert: %s to string",
-                          e.what(),
-                          typeid(m_value).name());
+            // LOG_FMT_ERROR(GET_ROOT_LOGGER(),
+            //               "ConfigVar::toString exception %s convert: %s to string",
+            //               e.what(),
+            //               typeid(m_value).name());
+            std::cerr << "ConfigVar::toString exception "
+                      << e.what()
+                      << " convert: "
+                      << typeid(m_value).name()
+                      << " to string" << std::endl;
         }
         return "<error>";
     }
@@ -305,10 +310,15 @@ public:
             setValue(FromStringFN()(val));
             return true;
         } catch (std::exception& e) {
-            LOG_FMT_ERROR(GET_ROOT_LOGGER(),
-                          "ConfigVar::toString exception %s convert: string to %s",
-                          e.what(),
-                          typeid(m_value).name());
+            // LOG_FMT_ERROR(GET_ROOT_LOGGER(),
+            //               "ConfigVar::toString exception %s convert: string to %s",
+            //               e.what(),
+            //               typeid(m_value).name());
+            std::cerr << "ConfigVar::fromString exception "
+                      << e.what()
+                      << " convert: "
+                      << "string to "
+                      << typeid(m_value).name() << std::endl;
         }
         return false;
     }
@@ -348,6 +358,7 @@ public:
     // 查找配置项，返回 ConfigVarBase 智能指针
     static ConfigVarBase::ptr
     Lookup(const std::string& name) {
+        auto& s_data = GetData();
         auto itor = s_data.find(name);
         if (itor == s_data.end()) {
             return nullptr;
@@ -368,7 +379,8 @@ public:
         // 如果 std::dynamic_pointer_cast 转型失败会返回一个空的智能指针
         // 调用 operator bool() 来判断
         if (!ptr) {
-            LOG_ERROR(GET_ROOT_LOGGER(), "Config::Lookup<T> exception, 无法转换 ConfigVar<T> 的实际类型到模板参数类型 T");
+            // LOG_ERROR(GET_ROOT_LOGGER(), "Config::Lookup<T> exception, 无法转换 ConfigVar<T> 的实际类型到模板参数类型 T");
+            std::cerr << "Config::Lookup<T> exception, 无法转换 ConfigVar<T> 的实际类型到模板参数类型 T" << std::endl;
             throw std::bad_cast();
         }
         return ptr;
@@ -381,21 +393,23 @@ public:
         auto tmp = Lookup<T>(name);
         // 已存在同名配置项
         if (tmp) {
-            LOG_FMT_INFO(GET_ROOT_LOGGER(),
-                         "Config::Lookup name=%s 已存在",
-                         name.c_str());
+            // LOG_FMT_INFO(GET_ROOT_LOGGER(),
+            //              "Config::Lookup name=%s 已存在",
+            //              name.c_str());
             return tmp;
         }
         // 判断名称是否合法
         if (name.find_first_not_of("qwertyuiopasdfghjklzxcvbnm0123456789._") != std::string::npos) {
-            LOG_FMT_ERROR(GET_ROOT_LOGGER(),
-                          "Congif::Lookup exception name=%s"
-                          "参数只能以字母数字点或下划线开头",
-                          name.c_str());
+            // LOG_FMT_ERROR(GET_ROOT_LOGGER(),
+            //               "Congif::Lookup exception name=%s"
+            //               "参数只能以字母数字点或下划线开头",
+            //               name.c_str());
+            std::cerr << "Congif::Lookup exception, 参数只能以字母数字点或下划线开头" << std::endl;
             throw std::invalid_argument(name);
         }
         auto v = std::make_shared<ConfigVar<T>>(name, value, description);
-        s_data[name] = v;
+        // s_data[name] = v;
+        GetData()[name] = v;
         return v;
     }
 
@@ -404,6 +418,7 @@ public:
         std::vector<std::pair<std::string, YAML::Node>> node_list;
         TraversalNode(root, "", node_list);
         // 遍历结果，更新 s_data
+        auto& s_data = GetData();
         std::stringstream ss;
         for (const auto& item : node_list) {
             auto itor = s_data.find(item.first);
@@ -411,15 +426,14 @@ public:
                 ss.str("");
                 ss << item.second;
                 // 同名配置项则覆盖更新
-                try {
-                    s_data[item.first]->fromString(ss.str());
-                } catch (const std::exception& e) {
-                    LOG_FMT_ERROR(
-                        GET_ROOT_LOGGER(),
-                        "Config::LoadFromYAML exception what=%s",
-                        e.what());
-                }
-
+                // try {
+                s_data[item.first]->fromString(ss.str());
+                // } catch (const std::exception& e) {
+                // LOG_FMT_ERROR(
+                //     GET_ROOT_LOGGER(),
+                //     "Config::LoadFromYAML exception what=%s",
+                //     e.what());
+                // }
             } else {
                 // 约定大于配置原则，不对未约定的配置项进行解析
             }
@@ -428,8 +442,9 @@ public:
 
 private:
     // 遍历 YAML::Node 对象，并将遍历结果扁平化存到列表里返回
-    static void TraversalNode(const YAML::Node& node, const std::string& name,
-                              std::vector<std::pair<std::string, YAML::Node>>& output) {
+    static void
+    TraversalNode(const YAML::Node& node, const std::string& name,
+                  std::vector<std::pair<std::string, YAML::Node>>& output) {
         // 将 YAML::Node 存入 output
         auto itor = std::find_if(
             output.begin(),
@@ -461,7 +476,11 @@ private:
     }
 
 private:
-    static ConfigVarMap s_data;
+    // static ConfigVarMap s_data;
+    static ConfigVarMap& GetData() {
+        static ConfigVarMap s_data;
+        return s_data;
+    }
 };
 
 /* util functional */
