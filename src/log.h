@@ -311,7 +311,7 @@ public:
     typedef std::shared_ptr<__LoggerManager> ptr;
 
     __LoggerManager();
-
+    // 传入日志器名称来获取日志器,如果不存在,返回全局日志器
     Logger::ptr getLogger(const std::string& name);
     Logger::ptr getGlobal();
 
