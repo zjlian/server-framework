@@ -40,5 +40,9 @@ add_executable(test_config ${PROJECT_SOURCE_DIR}/tests/test_config.cc)
 add_dependencies(test_config ${PROJECT_NAME})
 target_link_libraries(test_config ${PROJECT_NAME})
 
+add_executable(test_thread ${PROJECT_SOURCE_DIR}/tests/test_thread.cc)
+add_dependencies(test_thread ${PROJECT_NAME})
+target_link_libraries(test_thread ${PROJECT_NAME})
+
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
