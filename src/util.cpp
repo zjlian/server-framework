@@ -2,11 +2,11 @@
 
 namespace zjl {
 
-int64_t getThreadID() {
+int GetThreadID() {
     return syscall(SYS_gettid);
 }
 
-int64_t getFiberID() {
+int GetFiberID() {
     return 0;
 }
 }

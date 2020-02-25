@@ -21,7 +21,7 @@ public:
     Thread(std::function<void()> callback, std::string name);
     ~Thread();
     // 获取线程 id
-    id_t getId() const;
+    pid_t getId() const;
     // 获取线程名称
     const std::string& getName() const;
     // 设置线程名称

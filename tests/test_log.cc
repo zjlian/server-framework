@@ -9,7 +9,7 @@ void TEST_defaultLogger() {
     std::cout << ">>>>>> Call TEST_defaultLogger 测试日志器的默认用法 <<<<<<" << std::endl;
     auto logger = zjl::LoggerManager::GetInstance()->getLogger("global");
     auto event = std::make_shared<zjl::LogEvent>(__FILE__, __LINE__,
-                                                 zjl::getThreadID(), zjl::getFiberID(), time(nullptr), "wdnmd");
+                                                 zjl::GetThreadID(), zjl::GetFiberID(), time(nullptr), "wdnmd");
     logger->log(event);
     logger->debug(event);
     logger->info(event);

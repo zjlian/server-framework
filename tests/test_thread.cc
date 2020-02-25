@@ -9,7 +9,7 @@ void fn_1() {
     LOG_FMT_DEBUG(
         g_logger,
         "当前线程 id = %d/%d, 当前线程名 = %s",
-        zjl::getThreadID(),
+        zjl::GetThreadID(),
         zjl::Thread::GetThis()->getId(),
         zjl::Thread::GetThisThreadName().c_str());
 }

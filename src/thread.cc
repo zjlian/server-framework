@@ -1,6 +1,7 @@
 #include "thread.h"
 #include "log.h"
 #include <exception>
+#include <unistd.h>
 
 namespace zjl {
 
@@ -35,7 +36,7 @@ void SetThisThreadName(const std::string& name) {
 }
 
 Thread::Thread(std::function<void()> callback, std::string name)
-    : m_id(-1), m_name(name), m_thread(0) {
+    : m_id(-1), m_name(name), m_thread(0), m_callback(callback) {
     // 调用 pthread_create 创建新线程
     // 将 Thread 实例作为参数传递给静态方法 Thread::Run, 在静态方法内部调用 Thread 实例的 callback
     int result = pthread_create(&m_thread, nullptr, &Thread::Run, this);
@@ -53,9 +54,10 @@ Thread::~Thread() {
     if (m_thread) {
         pthread_detach(m_thread);
     }
+    // TODO 实例析构后，线程无法执行
 }
 
-id_t Thread::getId() const {
+pid_t Thread::getId() const {
     return m_id;
 }
 
@@ -78,14 +80,22 @@ void Thread::join() {
                 result);
             throw std::system_error();
         }
+        m_thread = 0;
     }
 }
 
 void* Thread::Run(void* arg) {
     Thread* thread = (Thread*)arg;
+    if (!thread->m_callback) {
+        LOG_ERROR(
+            system_logger,
+            "Thread::Run() 异常，Thread 实例已被析构,无法调用 callback");
+        throw std::logic_error("Thread 实例已被析构,无法调用 callback");
+    }
     // 赋值将当前线程的局部变量 t_thread
     t_thread = thread;
-    thread->m_id = getThreadID();
+    t_thread_name = thread->m_name;
+    thread->m_id = GetThreadID();
     // 设置 pthread 线程的线程名
     pthread_setname_np(pthread_self(), thread->m_name.substr(0, 15).c_str());
     std::function<void()> callback;

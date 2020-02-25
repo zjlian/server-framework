@@ -11,9 +11,9 @@
 namespace zjl {
 
 // 获取linux下线程的唯一id
-int64_t getThreadID();
+int GetThreadID();
 // 获取协程id
-int64_t getFiberID();
+int GetFiberID();
 
 /**
  * @brief 简单的单例包装类
