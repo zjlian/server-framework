@@ -46,5 +46,22 @@ public:
 private:
     SingletonPtr() = default;
 };
+
+/**
+*
+* @brief 禁用移动与拷贝构造操作
+* 继承使用
+*/
+class noncopyable {
+public:
+    noncopyable() = default;
+    ~noncopyable() = default;
+
+private:
+    noncopyable(const noncopyable&) = delete;
+    noncopyable(const noncopyable&&) = delete;
+    noncopyable& operator=(const noncopyable&) = delete;
+    noncopyable& operator=(const noncopyable&&) = delete;
+};
 }
 #endif
