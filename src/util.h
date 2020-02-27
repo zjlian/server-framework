@@ -8,7 +8,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-namespace zjl {
+namespace zjl
+{
 
 // 获取linux下线程的唯一id
 int GetThreadID();
@@ -20,9 +21,11 @@ int GetFiberID();
  * 调用 Singleton::GetInstance 返回被包装类型的原生指针
 */
 template <class T>
-class Singleton final {
+class Singleton final
+{
 public:
-    static T* GetInstance() {
+    static T* GetInstance()
+    {
         static T ins;
         return &ins;
     }
@@ -36,9 +39,11 @@ private:
  * 调用 Singleton::GetInstance 返回被包装类型的 std::shared_ptr 智能指针
 */
 template <class T>
-class SingletonPtr final {
+class SingletonPtr final
+{
 public:
-    static std::shared_ptr<T> GetInstance() {
+    static std::shared_ptr<T> GetInstance()
+    {
         static auto ins = std::make_shared<T>();
         return ins;
     }
@@ -52,7 +57,8 @@ private:
 * @brief 禁用移动与拷贝构造操作
 * 继承使用
 */
-class noncopyable {
+class noncopyable
+{
 public:
     noncopyable() = default;
     ~noncopyable() = default;

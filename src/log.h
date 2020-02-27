@@ -31,7 +31,8 @@
     {                                                    \
         char* b = nullptr;                               \
         int l = asprintf(&b, format, argv);              \
-        if (l != -1) {                                   \
+        if (l != -1)                                     \
+        {                                                \
             LOG_LEVEL(logger, level, std::string(b, l)); \
             free(b);                                     \
         }                                                \
@@ -46,11 +47,14 @@
 #define GET_ROOT_LOGGER() zjl::LoggerManager::GetInstance()->getGlobal()
 #define GET_LOGGER(name) zjl::LoggerManager::GetInstance()->getLogger(name)
 
-namespace zjl {
+namespace zjl
+{
 // 日志级别
-class LogLevel {
+class LogLevel
+{
 public:
-    enum Level {
+    enum Level
+    {
         UNKNOWN = 0,
         DEBUG = 1,
         INFO = 2,
@@ -65,8 +69,10 @@ public:
 /**
  * @brief 日志器的 appender 的配置信息类
 */
-struct LogAppenderConfig {
-    enum Type {
+struct LogAppenderConfig
+{
+    enum Type
+    {
         Stdout = 0,
         File = 1
     };
@@ -78,7 +84,8 @@ struct LogAppenderConfig {
     LogAppenderConfig()
         : type(Type::Stdout), level(LogLevel::UNKNOWN) {}
 
-    bool operator==(const LogAppenderConfig& lhs) const {
+    bool operator==(const LogAppenderConfig& lhs) const
+    {
         return type == lhs.type &&
                level == lhs.level &&
                formatter == lhs.formatter &&
@@ -89,7 +96,8 @@ struct LogAppenderConfig {
 /**
  * @brief 日志器的配置信息类
 */
-struct LogConfig {
+struct LogConfig
+{
     std::string name;                        // 日志器名称
     LogLevel::Level level;                   // 日志器的日志有效等级
     std::string formatter;                   // 日志器的日志打印格式
@@ -98,7 +106,8 @@ struct LogConfig {
     LogConfig()
         : level(LogLevel::UNKNOWN) {}
 
-    bool operator==(const LogConfig& lhs) const {
+    bool operator==(const LogConfig& lhs) const
+    {
         return name == lhs.name /* &&
                level == lhs.level &&
                formatter == lhs.formatter &&
@@ -110,21 +119,27 @@ struct LogConfig {
  * @brief LexicalCast 的偏特化
 */
 template <>
-class LexicalCast<std::string, std::vector<LogConfig>> {
+class LexicalCast<std::string, std::vector<LogConfig>>
+{
 public:
-    std::vector<LogConfig> operator()(const std::string& source) {
+    std::vector<LogConfig> operator()(const std::string& source)
+    {
         // TODO 有BUG
         auto node = YAML::Load(source);
         std::vector<LogConfig> result{};
-        if (node.IsSequence()) {
-            for (const auto log_config : node) {
+        if (node.IsSequence())
+        {
+            for (const auto log_config : node)
+            {
                 // std::cerr << ">>>>>>>>>>>>>>>>> " << log_config << std::endl;
                 LogConfig lc{};
                 lc.name = log_config["name"] ? log_config["name"].as<std::string>() : "";
                 lc.level = log_config["level"] ? (LogLevel::Level)(log_config["level"].as<int>()) : LogLevel::UNKNOWN;
                 lc.formatter = log_config["formatter"] ? log_config["formatter"].as<std::string>() : "";
-                if (log_config["appender"] && log_config["appender"].IsSequence()) {
-                    for (const auto app_config : log_config["appender"]) {
+                if (log_config["appender"] && log_config["appender"].IsSequence())
+                {
+                    for (const auto app_config : log_config["appender"])
+                    {
                         LogAppenderConfig ac{};
                         ac.type = (LogAppenderConfig::Type)(app_config["type"] ? app_config["type"].as<int>() : 0);
                         ac.file = app_config["file"] ? app_config["file"].as<std::string>() : "";
@@ -141,16 +156,20 @@ public:
 };
 
 template <>
-class LexicalCast<std::vector<LogConfig>, std::string> {
+class LexicalCast<std::vector<LogConfig>, std::string>
+{
 public:
-    std::string operator()(const std::vector<LogConfig>& source) {
+    std::string operator()(const std::vector<LogConfig>& source)
+    {
         YAML::Node node;
-        for (const auto log_config : source) {
+        for (const auto log_config : source)
+        {
             node["name"] = log_config.name;
             node["level"] = (int)(log_config.level);
             node["formatter"] = log_config.formatter;
             YAML::Node app_list_node;
-            for (const auto app_config : log_config.appender) {
+            for (const auto app_config : log_config.appender)
+            {
                 YAML::Node app_node;
                 app_node["type"] = (int)(app_config.type);
                 app_node["file"] = app_config.file;
@@ -169,7 +188,8 @@ public:
 /**
  * @brief 日志消息类
 */
-class LogEvent {
+class LogEvent
+{
 public:
     typedef std::shared_ptr<LogEvent> ptr;
 
@@ -213,11 +233,13 @@ private:
  * @brief 日志格式化器
  * 构造时传入日志格式化规则的字符串，调用 format() 传入 LogEvent 实例，返回格式化后的字符串
 */
-class LogFormatter {
+class LogFormatter
+{
 public:
     typedef std::shared_ptr<LogFormatter> ptr;
 
-    class FormatItem {
+    class FormatItem
+    {
     public:
         typedef std::shared_ptr<FormatItem> ptr;
 
@@ -235,7 +257,8 @@ private:
 };
 
 // 日志输出器基类
-class LogAppender {
+class LogAppender
+{
 public:
     typedef std::shared_ptr<LogAppender> ptr;
 
@@ -253,7 +276,8 @@ protected:
 };
 
 // 日志器
-class Logger {
+class Logger
+{
 public:
     typedef std::shared_ptr<Logger> ptr;
 
@@ -280,7 +304,8 @@ private:
 };
 
 //输出到终端的Appender
-class StdoutLogAppender : public LogAppender {
+class StdoutLogAppender : public LogAppender
+{
 public:
     typedef std::shared_ptr<StdoutLogAppender> ptr;
 
@@ -289,7 +314,8 @@ public:
 };
 
 //输出到文件的Appender
-class FileLogAppender : public LogAppender {
+class FileLogAppender : public LogAppender
+{
 public:
     typedef std::shared_ptr<FileLogAppender> ptr;
 
@@ -306,7 +332,8 @@ private:
 /**
  * @brief 日志器的管理器
 */
-class __LoggerManager {
+class __LoggerManager
+{
 public:
     typedef std::shared_ptr<__LoggerManager> ptr;
 
@@ -327,8 +354,10 @@ private:
 */
 typedef SingletonPtr<__LoggerManager> LoggerManager;
 
-struct LogIniter {
-    LogIniter() {
+struct LogIniter
+{
+    LogIniter()
+    {
         auto log_config_list =
             zjl::Config::Lookup<std::vector<LogConfig>>("logs", {}, "日志器的配置项");
         // 注册日志器配置项变更事件处理器，当配置项变动时，更新日志器

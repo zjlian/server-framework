@@ -23,36 +23,44 @@ auto config_test_set = zjl::Config::Lookup<std::set<int>>(
     "test_set", std::set<int>{10, 20, 30});
 
 // ================== 自定义类型测试 ======================
-struct Goods {
+struct Goods
+{
     std::string name;
     double price;
 
-    std::string toString() const {
+    std::string toString() const
+    {
         std::stringstream ss;
         ss << "**" << name << "** $" << price;
         return ss.str();
     }
 
-    bool operator==(const Goods& rhs) const {
+    bool operator==(const Goods& rhs) const
+    {
         return name == rhs.name &&
                price == rhs.price;
     }
 };
 
-std::ostream& operator<<(std::ostream& out, const Goods& g) {
+std::ostream& operator<<(std::ostream& out, const Goods& g)
+{
     out << g.toString();
     return out;
 }
 
-namespace zjl {
+namespace zjl
+{
 // zjl::LexicalCast 针对自定义类型的偏特化
 template <>
-class LexicalCast<std::string, Goods> {
+class LexicalCast<std::string, Goods>
+{
 public:
-    Goods operator()(const std::string& source) {
+    Goods operator()(const std::string& source)
+    {
         auto node = YAML::Load(source);
         Goods g;
-        if (node.IsMap()) {
+        if (node.IsMap())
+        {
             g.name = node["name"].as<std::string>();
             g.price = node["price"].as<double>();
         }
@@ -61,9 +69,11 @@ public:
 };
 
 template <>
-class LexicalCast<Goods, std::string> {
+class LexicalCast<Goods, std::string>
+{
 public:
-    std::string operator()(const Goods& source) {
+    std::string operator()(const Goods& source)
+    {
         YAML::Node node;
         node["name"] = source.name;
         node["price"] = source.price;
@@ -80,19 +90,24 @@ auto config_test_uset_type_list = zjl::Config::Lookup<std::vector<Goods>>("user.
 // ===============================================
 
 // 测试通过解析 yaml 文件更新配置项
-void TEST_loadConfig(const std::string& path) {
+void TEST_loadConfig(const std::string& path)
+{
     LOG_DEBUG(GET_ROOT_LOGGER(), "call TEST_loadConfig 测试通过解析 yaml 文件更新配置项");
     YAML::Node config;
-    try {
+    try
+    {
         config = YAML::LoadFile(path);
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e)
+    {
         LOG_FMT_ERROR(GET_ROOT_LOGGER(), "文件加载失败：%s", e.what());
     }
     zjl::Config::LoadFromYAML(config);
 }
 
 // 测试配置项的 toString 方法
-void TEST_ConfigVarToString() {
+void TEST_ConfigVarToString()
+{
     LOG_DEBUG(GET_ROOT_LOGGER(), "call TEST_defaultConfig 测试获取默认的配置项");
     std::cout << *config_system_port << std::endl;
     std::cout << *config_test_list << std::endl;
@@ -104,12 +119,14 @@ void TEST_ConfigVarToString() {
 }
 
 // 测试获取并使用配置的值
-void TEST_GetConfigVarValue() {
+void TEST_GetConfigVarValue()
+{
     LOG_DEBUG(GET_ROOT_LOGGER(), "call TEST_GetConfigVarValue 测试获取并使用配置的值");
 // 遍历线性容器的宏
 #define TSEQ(config_var)                                             \
     std::cout << "name = " << config_var->getName() << "; value = "; \
-    for (const auto& item : config_var->getValue()) {                \
+    for (const auto& item : config_var->getValue())                  \
+    {                                                                \
         std::cout << item << ", ";                                   \
     }                                                                \
     std::cout << std::endl;
@@ -122,7 +139,8 @@ void TEST_GetConfigVarValue() {
 // 遍历映射容器的宏
 #define TMAP(config_var)                                                \
     std::cout << "name = " << config_var->getName() << "; value = ";    \
-    for (const auto& pair : config_var->getValue()) {                   \
+    for (const auto& pair : config_var->getValue())                     \
+    {                                                                   \
         std::cout << "<" << pair.first << ", " << pair.second << ">, "; \
     }                                                                   \
     std::cout << std::endl;
@@ -132,15 +150,18 @@ void TEST_GetConfigVarValue() {
 }
 
 // 测试获取不存在的配置项
-void TEST_nonexistentConfig() {
+void TEST_nonexistentConfig()
+{
     LOG_DEBUG(GET_ROOT_LOGGER(), "call TEST_nonexistentConfig 测试获取不存在的配置项");
     auto log_name = zjl::Config::Lookup("nonexistent");
-    if (!log_name) {
+    if (!log_name)
+    {
         LOG_ERROR(GET_ROOT_LOGGER(), "non value");
     }
 }
 
-int main() {
+int main()
+{
     config_system_port->addListener("main/change", [](const int& old_value, const int& new_value) {
         LOG_FMT_DEBUG(
             GET_ROOT_LOGGER(),

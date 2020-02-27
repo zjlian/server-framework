@@ -1,12 +1,15 @@
 #include "util.h"
 
-namespace zjl {
+namespace zjl
+{
 
-int GetThreadID() {
+int GetThreadID()
+{
     return syscall(SYS_gettid);
 }
 
-int GetFiberID() {
+int GetFiberID()
+{
     return 0;
 }
 }

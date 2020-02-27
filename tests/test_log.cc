@@ -5,7 +5,8 @@
 #include <iostream>
 #include <pthread.h>
 
-void TEST_defaultLogger() {
+void TEST_defaultLogger()
+{
     std::cout << ">>>>>> Call TEST_defaultLogger 测试日志器的默认用法 <<<<<<" << std::endl;
     auto logger = zjl::LoggerManager::GetInstance()->getLogger("global");
     auto event = std::make_shared<zjl::LogEvent>(__FILE__, __LINE__,
@@ -18,7 +19,8 @@ void TEST_defaultLogger() {
     logger->fatal(event);
 }
 
-void TEST_macroDefaultLogger() {
+void TEST_macroDefaultLogger()
+{
     std::cout << ">>>>>> Call TEST_macroLogger 测试日志器的宏函数 <<<<<<" << std::endl;
     auto logger = GET_ROOT_LOGGER();
     LOG_DEBUG(logger, "消息消息 " + std::to_string(time(nullptr)));
@@ -33,16 +35,21 @@ void TEST_macroDefaultLogger() {
     LOG_FMT_FATAL(logger, "消息消息 %s", "fatal");
 }
 
-void TEST_getNonexistentLogger() {
+void TEST_getNonexistentLogger()
+{
     std::cout << ">>>>>> Call TEST_getNonexistentLogger 测试获取不存在的日志器 <<<<<<" << std::endl;
-    try {
+    try
+    {
         zjl::LoggerManager::GetInstance()->getLogger("nonexistent");
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e)
+    {
         std::cerr << e.what() << '\n';
     }
 }
 
-void TEST_loggerConfig() {
+void TEST_loggerConfig()
+{
     std::cout << ">>>>>> Call TEST_loggerConfig 测试日志器的配置文件加载 <<<<<<" << std::endl;
     auto config = zjl::Config::Lookup("logs");
     LOG_DEBUG(GET_ROOT_LOGGER(), config->toString().c_str());
@@ -51,7 +58,8 @@ void TEST_loggerConfig() {
     LOG_DEBUG(GET_ROOT_LOGGER(), config->toString().c_str());
 }
 
-void TEST_createLoggerByYAMLFile() {
+void TEST_createLoggerByYAMLFile()
+{
     std::cout << ">>>>>> Call TEST_createAndUsedLogger 测试配置功能 <<<<<<" << std::endl;
     auto yaml_node = YAML::LoadFile("/home/workspace/c/server-framework/config.yml");
     zjl::Config::LoadFromYAML(yaml_node);
@@ -70,7 +78,8 @@ void TEST_createLoggerByYAMLFile() {
     // system_logger->log(event);
 }
 
-int main() {
+int main()
+{
     TEST_macroDefaultLogger();
     // TEST_defaultLogger();
     // TEST_macroDefaultLogger();

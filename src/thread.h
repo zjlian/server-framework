@@ -10,12 +10,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-namespace zjl {
+namespace zjl
+{
 
 /**
  * @brief 对 semaphore.h 信号量的简单封装
 */
-class Semaphore : public noncopyable {
+class Semaphore : public noncopyable
+{
 public:
     explicit Semaphore(uint32_t count);
     ~Semaphore();
@@ -32,7 +34,8 @@ private:
  * @brief 线程类
  * 基于 pthread 封装的
 */
-class Thread : public noncopyable {
+class Thread : public noncopyable
+{
 public:
     typedef std::shared_ptr<Thread> ptr;
     typedef std::unique_ptr<Thread> uptr;
