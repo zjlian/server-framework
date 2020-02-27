@@ -10,7 +10,7 @@ void fn_1() {
         g_logger,
         "当前线程 id = %d/%d, 当前线程名 = %s",
         zjl::GetThreadID(),
-        zjl::Thread::GetThis()->getId(),
+        zjl::Thread::GetThisId(),
         zjl::Thread::GetThisThreadName().c_str());
 }
 void fn_2() {
