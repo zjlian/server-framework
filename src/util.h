@@ -54,7 +54,7 @@ private:
 
 /**
 *
-* @brief 禁用移动与拷贝构造操作
+* @brief 禁用拷贝构造操作
 * 继承使用
 */
 class noncopyable
