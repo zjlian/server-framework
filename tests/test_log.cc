@@ -1,23 +1,24 @@
 #include "src/config.h"
 #include "src/log.h"
+#include "src/thread.h"
 #include "src/util.h"
 #include <boost/array.hpp>
 #include <iostream>
 #include <pthread.h>
 
-void TEST_defaultLogger()
-{
-    std::cout << ">>>>>> Call TEST_defaultLogger 测试日志器的默认用法 <<<<<<" << std::endl;
-    auto logger = zjl::LoggerManager::GetInstance()->getLogger("global");
-    auto event = std::make_shared<zjl::LogEvent>(__FILE__, __LINE__,
-                                                 zjl::GetThreadID(), zjl::GetFiberID(), time(nullptr), "wdnmd");
-    logger->log(event);
-    logger->debug(event);
-    logger->info(event);
-    logger->warn(event);
-    logger->error(event);
-    logger->fatal(event);
-}
+// void TEST_defaultLogger()
+// {
+//     std::cout << ">>>>>> Call TEST_defaultLogger 测试日志器的默认用法 <<<<<<" << std::endl;
+//     auto logger = zjl::LoggerManager::GetInstance()->getLogger("global");
+//     auto event = std::make_shared<zjl::LogEvent>(__FILE__, __LINE__,
+//                                                  zjl::GetThreadID(), zjl::GetFiberID(), time(nullptr), "wdnmd");
+//     logger->log(event);
+//     logger->debug(event);
+//     logger->info(event);
+//     logger->warn(event);
+//     logger->error(event);
+//     logger->fatal(event);
+// }
 
 void TEST_macroDefaultLogger()
 {
@@ -78,6 +79,33 @@ void TEST_createLoggerByYAMLFile()
     // system_logger->log(event);
 }
 
+void fn_1()
+{
+    auto logger = GET_ROOT_LOGGER();
+    for (int i = 0; i < 100; i++)
+    {
+        LOG_INFO(logger, "++++++++++++++");
+    }
+}
+void fn_2()
+{
+    auto logger = GET_ROOT_LOGGER();
+    for (int i = 0; i < 100; i++)
+    {
+        LOG_INFO(logger, "--------------");
+    }
+}
+
+void TEST_multiThreadLog()
+{
+    LOG_INFO(GET_ROOT_LOGGER(), ">>>>>> Call TEST_multiThreadLog 多线程打日志 <<<<<<");
+    {
+        zjl::Thread t_1(fn_1, "thread_1");
+        zjl::Thread t_2(fn_2, "thread_2");
+    }
+    sleep(10);
+}
+
 int main()
 {
     TEST_macroDefaultLogger();
@@ -87,6 +115,7 @@ int main()
     // TEST_createAndUsedLogger();
     // TEST_loggerConfig();
     TEST_createLoggerByYAMLFile();
+    TEST_multiThreadLog();
 
     return 0;
 }
