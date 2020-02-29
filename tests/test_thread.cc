@@ -1,9 +1,14 @@
 #include "src/log.h"
 #include "src/thread.h"
 #include <memory>
+#include <stdint.h>
 #include <unistd.h>
 #include <vector>
 auto g_logger = GET_ROOT_LOGGER();
+
+static uint64_t count = 0;
+zjl::RWLock s_rwlock;
+zjl::Mutex s_mutex;
 
 void fn_1()
 {
@@ -14,9 +19,16 @@ void fn_1()
         zjl::Thread::GetThisId(),
         zjl::Thread::GetThisThreadName().c_str());
 }
+
 void fn_2()
 {
+    zjl::WriteScopedLock rsl(&s_rwlock);
+    for (int i = 0; i < 100000000; i++)
+    {
+        count++;
+    }
 }
+
 // 测试线程创建
 void TEST_createThread()
 {
@@ -39,10 +51,30 @@ void TEST_createThread()
     }
 }
 
+void TEST_readWriteLock()
+{
+    sleep(0);
+    LOG_DEBUG(g_logger, "Call TEST_readWriteLock() 测试线程读写锁");
+    std::vector<zjl::Thread::uptr> thread_list;
+    for (int i = 0; i < 10; i++)
+    {
+        thread_list.push_back(
+            std::make_unique<zjl::Thread>(&fn_2, "temp_thread" + std::to_string(i)));
+    }
+
+    for (auto& thread : thread_list)
+    {
+        thread->join();
+    }
+
+    LOG_FMT_DEBUG(g_logger, "count = %ld", count);
+}
+
 int main()
 {
     TEST_createThread();
+    TEST_readWriteLock();
 
-    sleep(3);
+    // sleep(3);
     return 0;
 }
