@@ -31,6 +31,208 @@ private:
 };
 
 /**
+ * @brief 作用域线程锁包装器
+ * T 需要实现 lock() 与 unlock() 方法
+*/
+template <typename T>
+class ScopedLockImpl
+{
+public:
+    ScopedLockImpl(T* mutex)
+        : m_mutex(mutex)
+    {
+        m_mutex->lock();
+        m_locked = true;
+    }
+
+    ~ScopedLockImpl() { unlock(); }
+
+    void lock()
+    {
+        if (!m_locked)
+        {
+            m_mutex->lock();
+            m_locked = true;
+        }
+    }
+
+    void unlock()
+    {
+        if (m_locked)
+        {
+            m_locked = false;
+            m_mutex->unlock();
+        }
+    }
+
+private:
+    T* m_mutex;
+    bool m_locked;
+};
+
+/**
+ * @brief 作用域读写锁包装器
+ * T 需要实现 readLock() 与 unlock() 方法
+*/
+template <typename T>
+class ReadScopedLockImpl
+{
+public:
+    ReadScopedLockImpl(T* mutex)
+        : m_mutex(mutex)
+    {
+        m_mutex->readLock();
+        m_locked = true;
+    }
+
+    ~ReadScopedLockImpl() { unlock(); }
+
+    void lock()
+    {
+        if (!m_locked)
+        {
+            m_mutex->readLock();
+            m_locked = true;
+        }
+    }
+
+    void unlock()
+    {
+        if (m_locked)
+        {
+            m_locked = false;
+            m_mutex->unlock();
+        }
+    }
+
+private:
+    T* m_mutex;
+    bool m_locked;
+};
+
+/**
+ * @brief 作用域读写锁包装器
+ * T 需要实现 writeLock() 与 unlock() 方法
+*/
+template <typename T>
+class WriteScopedLockImpl
+{
+public:
+    WriteScopedLockImpl(T* mutex)
+        : m_mutex(mutex)
+    {
+        m_mutex->writeLock();
+        m_locked = true;
+    }
+
+    ~WriteScopedLockImpl() { unlock(); }
+
+    void lock()
+    {
+        if (!m_locked)
+        {
+            m_mutex->writeLock();
+            m_locked = true;
+        }
+    }
+
+    void unlock()
+    {
+        if (m_locked)
+        {
+            m_locked = false;
+            m_mutex->unlock();
+        }
+    }
+
+private:
+    T* m_mutex;
+    bool m_locked;
+};
+
+/**
+ * @brief pthread 互斥量的封装
+*/
+class Mutex
+{
+public:
+    Mutex()
+    {
+        pthread_mutex_init(&m_mutex, nullptr);
+    }
+
+    ~Mutex()
+    {
+        pthread_mutex_destroy(&m_mutex);
+    }
+
+    int lock()
+    {
+        return pthread_mutex_lock(&m_mutex);
+    }
+
+    int unlock()
+    {
+        return pthread_mutex_unlock(&m_mutex);
+    }
+
+private:
+    pthread_mutex_t m_mutex;
+};
+
+/**
+ * @brief 互斥量的 RAII
+*/
+using ScopedLock = ScopedLockImpl<Mutex>;
+
+/**
+ * @brief pthread 读写锁的封装
+*/
+class RWLock
+{
+public:
+    RWLock()
+    {
+        // TODO 初始化异常处理
+        pthread_rwlock_init(&m_lock, nullptr);
+    }
+
+    ~RWLock()
+    {
+        // TODO 销毁异常处理
+        pthread_rwlock_destroy(&m_lock);
+    }
+
+    int readLock()
+    {
+        return pthread_rwlock_rdlock(&m_lock);
+    }
+
+    int writeLock()
+    {
+        return pthread_rwlock_wrlock(&m_lock);
+    }
+
+    int unlock()
+    {
+        return pthread_rwlock_unlock(&m_lock);
+    }
+
+private:
+    pthread_rwlock_t m_lock;
+};
+
+/**
+ * @brief 读写锁针对读操作的作用域 RAII 实现
+*/
+using ReadScopedLock = ReadScopedLockImpl<RWLock>;
+
+/**
+ * @brief 读写锁针对写操作的作用域 RAII 实现
+*/
+using WriteScopedLock = WriteScopedLockImpl<RWLock>;
+
+/**
  * @brief 线程类
  * 基于 pthread 封装的
 */
