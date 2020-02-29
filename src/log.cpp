@@ -206,6 +206,7 @@ Logger::Logger(const std::string& name, LogLevel::Level level, const std::string
 
 void Logger::addAppender(LogAppender::ptr appender)
 {
+    ScopedLock lock(&m_mutex);
     if (!appender->getFormatter())
     {
         appender->setFormatter(m_formatter);
@@ -215,6 +216,8 @@ void Logger::addAppender(LogAppender::ptr appender)
 
 void Logger::delAppender(LogAppender::ptr appender)
 {
+    ScopedLock lock(&m_mutex);
+    // TODO 实现可能存在问题
     auto itor = std::find(m_appender_list.begin(), m_appender_list.end(), appender);
     if (itor != m_appender_list.end())
     {
@@ -230,40 +233,54 @@ void Logger::log(LogEvent::ptr ev)
         return;
     }
     // 遍历输出器，输出日志
+    ScopedLock lock(&m_mutex);
     for (auto& item : m_appender_list)
     {
         item->log(ev->getLevel(), ev);
     }
 }
 
-void Logger::debug(LogEvent::ptr ev)
+// void Logger::debug(LogEvent::ptr ev)
+// {
+//     ev->setLevel(LogLevel::DEBUG);
+//     log(ev);
+// }
+
+// void Logger::info(LogEvent::ptr ev)
+// {
+//     ev->setLevel(LogLevel::INFO);
+//     log(ev);
+// }
+
+// void Logger::warn(LogEvent::ptr ev)
+// {
+//     ev->setLevel(LogLevel::WARN);
+//     log(ev);
+// }
+
+// void Logger::error(LogEvent::ptr ev)
+// {
+//     ev->setLevel(LogLevel::ERROR);
+//     log(ev);
+// }
+
+// void Logger::fatal(LogEvent::ptr ev)
+// {
+//     ev->setLevel(LogLevel::FATAL);
+//     log(ev);
+// }
+
+LogFormatter::ptr LogAppender::getFormatter()
 {
-    ev->setLevel(LogLevel::DEBUG);
-    log(ev);
+    ScopedLock lock(&m_mutex);
+    return m_formatter;
 }
 
-void Logger::info(LogEvent::ptr ev)
+void LogAppender::setFormatter(const LogFormatter::ptr formatter)
 {
-    ev->setLevel(LogLevel::INFO);
-    log(ev);
-}
-
-void Logger::warn(LogEvent::ptr ev)
-{
-    ev->setLevel(LogLevel::WARN);
-    log(ev);
-}
-
-void Logger::error(LogEvent::ptr ev)
-{
-    ev->setLevel(LogLevel::ERROR);
-    log(ev);
-}
-
-void Logger::fatal(LogEvent::ptr ev)
-{
-    ev->setLevel(LogLevel::FATAL);
-    log(ev);
+    ScopedLock lock(&m_mutex);
+    // TODO move(formatter) 有必要吗?
+    m_formatter = formatter;
 }
 
 StdoutLogAppender::StdoutLogAppender(LogLevel::Level level)
@@ -275,7 +292,9 @@ void StdoutLogAppender::log(LogLevel::Level level, LogEvent::ptr ev)
     {
         return;
     }
+    ScopedLock lock(&m_mutex);
     std::cout << m_formatter->format(ev);
+    std::cout.flush();
 }
 
 LogAppender::LogAppender(LogLevel::Level level)
@@ -295,6 +314,7 @@ FileLogAppender::FileLogAppender(const std::string& filename, LogLevel::Level le
 
 bool FileLogAppender::reopen()
 {
+    ScopedLock lock(&m_mutex);
     // 使用 fstream::operator!() 判断文件是否被正确打开
     if (!m_file_stream)
     {
@@ -310,7 +330,9 @@ void FileLogAppender::log(LogLevel::Level level, LogEvent::ptr ev)
     {
         return;
     }
+    ScopedLock lock(&m_mutex);
     m_file_stream << m_formatter->format(ev);
+    m_file_stream.flush();
 }
 
 LogFormatter::LogFormatter(const std::string& pattern)
@@ -401,7 +423,7 @@ void __LoggerManager::ensureGlobalLoggerExists()
 
 void __LoggerManager::init()
 {
-    // TODO 通过读取配置文件，更新用户修改的配置
+    ScopedLock lock(&m_mutex);
     auto config = Config::Lookup<std::vector<LogConfig>>("logs");
     const auto& config_log_list = config->getValue();
     for (const auto& config_log : config_log_list)
@@ -446,12 +468,12 @@ void __LoggerManager::init()
 
 Logger::ptr __LoggerManager::getLogger(const std::string& name)
 {
+    ScopedLock lock(&m_mutex);
     auto iter = m_logger_map.find(name);
     if (iter == m_logger_map.end())
     {
-        // std::cerr << "__LoggerManager::getLogger exception, name = " << name << " 的日志器不存在" << std::endl;
-        // throw std::runtime_error("__LoggerManager::getLogger() 传入了不存在的日志器名称 name");
-        return getGlobal();
+        // 日志器不存在就返回全局默认日志器
+        return m_logger_map.find("global")->second;
     }
     return iter->second;
 }

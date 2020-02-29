@@ -2,6 +2,7 @@
 #define SERVER_FRAMEWORK_LOG_H
 
 #include "config.h"
+#include "thread.h"
 #include "util.h"
 #include <cstdarg>
 #include <cstdint>
@@ -124,14 +125,12 @@ class LexicalCast<std::string, std::vector<LogConfig>>
 public:
     std::vector<LogConfig> operator()(const std::string& source)
     {
-        // TODO 有BUG
         auto node = YAML::Load(source);
         std::vector<LogConfig> result{};
         if (node.IsSequence())
         {
             for (const auto log_config : node)
             {
-                // std::cerr << ">>>>>>>>>>>>>>>>> " << log_config << std::endl;
                 LogConfig lc{};
                 lc.name = log_config["name"] ? log_config["name"].as<std::string>() : "";
                 lc.level = log_config["level"] ? (LogLevel::Level)(log_config["level"].as<int>()) : LogLevel::UNKNOWN;
@@ -267,12 +266,15 @@ public:
     // 纯虚函数，让派生类来实现
     virtual void log(LogLevel::Level level, LogEvent::ptr ev) = 0;
 
-    LogFormatter::ptr getFormatter() const { return m_formatter; }
-    void setFormatter(const LogFormatter::ptr formatter) { m_formatter = formatter; }
+    // thread-safe 获取格式化器
+    LogFormatter::ptr getFormatter();
+    // thread-safe 设置格式化器
+    void setFormatter(const LogFormatter::ptr formatter);
 
 protected:
     LogLevel::Level m_level;       // 输出器的日志等级
     LogFormatter::ptr m_formatter; // 格式化器，将LogEvent对象格式化为指定的字符串格式
+    Mutex m_mutex;
 };
 
 // 日志器
@@ -283,13 +285,18 @@ public:
 
     Logger();
     Logger(const std::string& name, LogLevel::Level level, const std::string& pattern);
-    virtual void log(LogEvent::ptr ev);
-    void debug(LogEvent::ptr ev);
-    void info(LogEvent::ptr ev);
-    void warn(LogEvent::ptr ev);
-    void error(LogEvent::ptr ev);
-    void fatal(LogEvent::ptr ev);
+    // thread-safe 输出日志
+    void log(LogEvent::ptr ev);
+    // TODO 下列注释的方法有待重新设计，或者不需要
+    // void debug(LogEvent::ptr ev);
+    // void info(LogEvent::ptr ev);
+    // void warn(LogEvent::ptr ev);
+    // void error(LogEvent::ptr ev);
+    // void fatal(LogEvent::ptr ev);
+
+    // thread-safe 增加输出器
     void addAppender(LogAppender::ptr appender);
+    // thread-safe 删除输出器
     void delAppender(LogAppender::ptr appender);
 
     LogLevel::Level getLevel() const { return m_level; }
@@ -301,6 +308,7 @@ private:
     std::string m_format_pattern;                // 日志输格式化器的默认pattern
     LogFormatter::ptr m_formatter;               // 日志默认格式化器，当加入 m_appender_list 的 appender 没有自己 formatter 时，使用该 Logger 的 formatter
     std::list<LogAppender::ptr> m_appender_list; // Appender列表
+    Mutex m_mutex;
 };
 
 //输出到终端的Appender
@@ -310,6 +318,7 @@ public:
     typedef std::shared_ptr<StdoutLogAppender> ptr;
 
     explicit StdoutLogAppender(LogLevel::Level level = LogLevel::DEBUG);
+    // thread-safe
     void log(LogLevel::Level level, LogEvent::ptr ev) override;
 };
 
@@ -347,6 +356,7 @@ private:
     void init();
     void ensureGlobalLoggerExists(); // 确保存在全局日志器
     std::map<std::string, Logger::ptr> m_logger_map;
+    Mutex m_mutex;
 };
 
 /**
