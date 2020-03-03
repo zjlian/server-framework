@@ -2,7 +2,7 @@
 #define SERVER_FRAMEWORK_CONFIG_H
 
 // #include "log.h"
-#include "yaml-cpp/yaml.h"
+#include "thread.h"
 #include <algorithm>
 #include <boost/lexical_cast.hpp>
 #include <exception>
@@ -16,6 +16,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <yaml-cpp/yaml.h>
 
 namespace zjl
 {
@@ -376,20 +377,25 @@ public:
         return false;
     }
 
-    // 增加配置项变更事件处理器
-    void addListener(std::string key, onChangeCallback cb)
+    // thread-safe 增加配置项变更事件处理器，返回处理器的唯一编号
+    uint64_t addListener(onChangeCallback cb)
     {
-        m_callback_map[key] = cb;
+        static uint64_t s_cb_id = 0;
+        WriteScopedLock lock(&m_mutex);
+        m_callback_map[s_cb_id] = cb;
+        return s_cb_id;
     }
-    // 删除配置项变更事件处理器
-    void delListener(std::string key)
+    // thread-safe 删除配置项变更事件处理器
+    void delListener(uint64_t key)
     {
+        WriteScopedLock lock(&m_mutex);
         m_callback_map.erase(key);
     }
 
-    // 获取配置项变更事件处理器
-    onChangeCallback getListener(std::string key)
+    // thread-safe 获取配置项变更事件处理器
+    onChangeCallback getListener(uint64_t key)
     {
+        ReadScopedLock lock(&m_mutex);
         auto iter = m_callback_map.find(key);
         if (iter == m_callback_map.end())
         {
@@ -398,15 +404,17 @@ public:
         return iter->second;
     }
 
-    // 清除所有配置项变更事件处理器
+    // thread-safe 清除所有配置项变更事件处理器
     void clearListener()
     {
+        WriteScopedLock lock(&m_mutex);
         m_callback_map.clear();
     }
 
 private:
     T m_value; // 配置项的值
-    std::map<std::string, onChangeCallback> m_callback_map;
+    std::map<uint64_t, onChangeCallback> m_callback_map;
+    RWLock m_mutex;
 };
 
 class Config
