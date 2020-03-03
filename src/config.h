@@ -315,21 +315,31 @@ public:
     ConfigVar(const std::string& name, const T& value, const std::string& description)
         : ConfigVarBase(name, description), m_value(value) {}
 
-    T getValue() const { return m_value; }
-    // 设置配置项的值
+    // thread-safe 获取配置项的值
+    T getValue() const
+    {
+        ReadScopedLock lock(&m_mutex);
+        return m_value;
+    }
+    // thread-safe 设置配置项的值
     void setValue(const T value)
     {
-        if (value == m_value)
-        {
-            return;
+        { // 上读锁
+            ReadScopedLock lock(&m_mutex);
+            if (value == m_value)
+            {
+                return;
+            }
+            auto old_value = m_value;
+            // 值被修改，调用所有的变更事件处理器
+            for (const auto& pair : m_callback_map)
+            {
+                pair.second(old_value, m_value);
+            }
         }
-        auto old_value = m_value;
+        // 上写锁
+        WriteScopedLock lock(&m_mutex);
         m_value = value;
-        // 值被修改，调用所有的变更事件处理器
-        for (const auto& pair : m_callback_map)
-        {
-            pair.second(old_value, m_value);
-        }
     }
     // 返回配置项的值的字符串
     std::string toString() const override
@@ -414,7 +424,7 @@ public:
 private:
     T m_value; // 配置项的值
     std::map<uint64_t, onChangeCallback> m_callback_map;
-    RWLock m_mutex;
+    mutable RWLock m_mutex;
 };
 
 class Config
@@ -422,10 +432,11 @@ class Config
 public:
     typedef std::map<std::string, ConfigVarBase::ptr> ConfigVarMap;
 
-    // 查找配置项，返回 ConfigVarBase 智能指针
+    // thread-safe 查找配置项，返回 ConfigVarBase 智能指针
     static ConfigVarBase::ptr
     Lookup(const std::string& name)
     {
+        ReadScopedLock lock(&GetRWLock());
         auto& s_data = GetData();
         auto iter = s_data.find(name);
         if (iter == s_data.end())
@@ -483,39 +494,33 @@ public:
             throw std::invalid_argument(name);
         }
         auto v = std::make_shared<ConfigVar<T>>(name, value, description);
-        // s_data[name] = v;
+        WriteScopedLock lock(&GetRWLock());
         GetData()[name] = v;
         return v;
     }
 
-    // 从 YAML::Node 中载入配置
+    // thread-safe 从 YAML::Node 中载入配置
     static void LoadFromYAML(const YAML::Node& root)
     {
         std::vector<std::pair<std::string, YAML::Node>> node_list;
         TraversalNode(root, "", node_list);
-        // 遍历结果，更新 s_data
-        auto& s_data = GetData();
-        std::stringstream ss;
-        for (const auto& item : node_list)
+
+        for (const auto& node : node_list)
         {
-            auto iter = s_data.find(item.first);
-            if (iter != s_data.end())
+            std::string key = node.first;
+            if (key.empty())
             {
-                ss.str("");
-                ss << item.second;
-                // 同名配置项则覆盖更新
-                // try {
-                s_data[item.first]->fromString(ss.str());
-                // } catch (const std::exception& e) {
-                // LOG_FMT_ERROR(
-                //     GET_ROOT_LOGGER(),
-                //     "Config::LoadFromYAML exception what=%s",
-                //     e.what());
-                // }
+                continue;
             }
-            else
+            std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+            // 根据配置项名称获取配置项
+            auto var = Lookup(key);
+            // 只处理注册过的配置项
+            if (var)
             {
-                // 约定大于配置原则，不对未约定的配置项进行解析
+                std::stringstream ss;
+                ss << node.second;
+                var->fromString(ss.str());
             }
         }
     }
@@ -564,16 +569,21 @@ private:
     }
 
 private:
-    // static ConfigVarMap s_data;
     static ConfigVarMap& GetData()
     {
         static ConfigVarMap s_data;
         return s_data;
     }
+
+    static RWLock& GetRWLock()
+    {
+        static RWLock s_lock;
+        return s_lock;
+    }
 };
 
 /* util functional */
 std::ostream& operator<<(std::ostream& out, const ConfigVarBase& cvb);
-}
+} // namespace zjl
 
 #endif
