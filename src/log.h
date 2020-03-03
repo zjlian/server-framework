@@ -372,7 +372,6 @@ struct LogIniter
             zjl::Config::Lookup<std::vector<LogConfig>>("logs", {}, "日志器的配置项");
         // 注册日志器配置项变更事件处理器，当配置项变动时，更新日志器
         log_config_list->addListener(
-            "log/LogIniter",
             [](const std::vector<LogConfig>&, const std::vector<LogConfig>&) {
                 std::cout << "日志器配置变动，更新日志器" << std::endl;
                 LoggerManager::GetInstance()->init();

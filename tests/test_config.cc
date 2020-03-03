@@ -162,12 +162,13 @@ void TEST_nonexistentConfig()
 
 int main()
 {
-    config_system_port->addListener("main/change", [](const int& old_value, const int& new_value) {
-        LOG_FMT_DEBUG(
-            GET_ROOT_LOGGER(),
-            "配置项 system.port 的值被修改，从 %d 到 %d",
-            old_value, new_value);
-    });
+    config_system_port->addListener(
+        [](const int& old_value, const int& new_value) {
+            LOG_FMT_DEBUG(
+                GET_ROOT_LOGGER(),
+                "配置项 system.port 的值被修改，从 %d 到 %d",
+                old_value, new_value);
+        });
     TEST_ConfigVarToString();
     TEST_GetConfigVarValue();
     TEST_loadConfig("/home/workspace/c/server-framework/tests/test_config.yml");

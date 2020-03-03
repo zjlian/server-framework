@@ -13,6 +13,16 @@
           </excludedPaths>
         </serverdata>
       </paths>
+      <paths name="vmware (b5f71265-5b7d-47e2-b8df-c3e8b3ed8aab)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/tmp/tmp.u0FcP6DGlz" local="$PROJECT_DIR$" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
     </serverData>
   </component>
 </project>
