@@ -315,7 +315,7 @@ public:
     ConfigVar(const std::string& name, const T& value, const std::string& description)
         : ConfigVarBase(name, description), m_value(value) {}
 
-    const T getValue() const { return m_value; }
+    T getValue() const { return m_value; }
     // 设置配置项的值
     void setValue(const T value)
     {
@@ -427,12 +427,12 @@ public:
     Lookup(const std::string& name)
     {
         auto& s_data = GetData();
-        auto itor = s_data.find(name);
-        if (itor == s_data.end())
+        auto iter = s_data.find(name);
+        if (iter == s_data.end())
         {
             return nullptr;
         }
-        return itor->second;
+        return iter->second;
     }
 
     // 查找配置项，返回指定类型的 ConfigVar 智能指针
@@ -498,8 +498,8 @@ public:
         std::stringstream ss;
         for (const auto& item : node_list)
         {
-            auto itor = s_data.find(item.first);
-            if (itor != s_data.end())
+            auto iter = s_data.find(item.first);
+            if (iter != s_data.end())
             {
                 ss.str("");
                 ss << item.second;
@@ -527,15 +527,15 @@ private:
                   std::vector<std::pair<std::string, YAML::Node>>& output)
     {
         // 将 YAML::Node 存入 output
-        auto itor = std::find_if(
+        auto output_iter = std::find_if(
             output.begin(),
             output.end(),
-            [&name](const std::pair<std::string, YAML::Node> item) {
+            [&name](const std::pair<std::string, YAML::Node>& item) {
                 return item.first == name;
             });
-        if (itor != output.end())
+        if (output_iter != output.end())
         {
-            itor->second = node;
+            output_iter->second = node;
         }
         else
         {
@@ -544,12 +544,12 @@ private:
         // 当 YAML::Node 为映射型节点，使用迭代器遍历
         if (node.IsMap())
         {
-            for (auto itor = node.begin(); itor != node.end(); ++itor)
+            for (auto iter = node.begin(); iter != node.end(); ++iter)
             {
                 TraversalNode(
-                    itor->second,
-                    name.empty() ? itor->first.Scalar()
-                                 : name + "." + itor->first.Scalar(),
+                    iter->second,
+                    name.empty() ? iter->first.Scalar()
+                                 : name + "." + iter->first.Scalar(),
                     output);
             }
         }
