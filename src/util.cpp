@@ -12,4 +12,4 @@ int GetFiberID()
 {
     return 0;
 }
-}
+} // namespace zjl
