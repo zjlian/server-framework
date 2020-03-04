@@ -469,7 +469,7 @@ public:
         return ptr;
     }
 
-    // 创建或更新配置项
+    // thread-safe 创建或更新配置项
     template <class T>
     static typename ConfigVar<T>::ptr
     Lookup(const std::string& name, const T& value, const std::string& description = "")
