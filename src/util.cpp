@@ -1,6 +1,7 @@
 #include "util.h"
 #include <execinfo.h>
 #include <iostream>
+#include <sstream>
 
 namespace zjl
 {
@@ -34,8 +35,14 @@ void Backtrace(std::vector<std::string>& out, int size, int skip)
 }
 std::string BacktraceToSring(int size, int skip)
 {
-    // TODO
-    return "";
+    std::vector<std::string> call_stack;
+    Backtrace(call_stack, size, skip);
+    std::stringstream ss;
+    for (const auto& item : call_stack)
+    {
+        ss << item << std::endl;
+    }
+    return ss.str();
 }
 
 } // namespace zjl
