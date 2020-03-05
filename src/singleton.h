@@ -1,6 +1,8 @@
 #ifndef SERVER_FRAMEWORK_SINGLETON_H
 #define SERVER_FRAMEWORK_SINGLETON_H
 
+#include <memory>
+
 namespace zjl
 {
 
