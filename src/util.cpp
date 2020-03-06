@@ -27,6 +27,12 @@ void Backtrace(std::vector<std::string>& out, int size, int skip)
     }
     for (int i = skip; i < call_stack_count; i++)
     {
+        // TODO 解码类型信息
+        /**
+         * 例如一个栈信息 ./test_exception(_Z2fni+0x62) [0x564e8a313317]
+         * 函数签名在符号 "(" 前 "+" 后，
+         * 调用 abi::__cxa_demangle 进行编码转换
+        */
         out.push_back(string_list[i]);
     }
     // backtrace_symbols() 返回 malloc 分配的内存指针，需要 free
