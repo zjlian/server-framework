@@ -30,6 +30,7 @@ src/util.cpp src/util.h
 src/config.cpp src/config.h
 src/thread.cc src/thread.h
 src/exception.cc src/exception.h
+src/fiber.cc src/fiber.h
 )
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} yaml-cpp pthread)
 
