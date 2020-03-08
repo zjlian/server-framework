@@ -16,10 +16,10 @@ namespace zjl
 {
 
 // 获取linux下线程的唯一id
-int GetThreadID();
+long GetThreadID();
 
 // 获取协程id
-int GetFiberID();
+uint64_t GetFiberID();
 
 /**
  * @brief 以 vector 的形式获取调用栈
