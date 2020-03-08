@@ -4,7 +4,7 @@ project(server_framework)
 # SET(CMAKE_C_COMPILER "/usr/bin/gcc-9")
 # SET(CMAKE_CXX_COMPILER "/usr/bin/g++-9")
 set(CMAKE_VERBOSE_MAKEFILE ON)
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O0 -ggdb -std=c++14 -Wall -Wno-deprecated -Werror -Wno-unused-function")
+set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O0 -ggdb -std=c++14 -Wall -Wno-deprecated -Werror -Wno-unused-function -Wno-unused-variable")
 set(CMAKE_CXX_STANDARD 14)
 
 # 引入boost
@@ -49,6 +49,10 @@ target_link_libraries(test_thread ${PROJECT_NAME})
 add_executable(test_exception ${PROJECT_SOURCE_DIR}/tests/test_exception.cc)
 add_dependencies(test_exception ${PROJECT_NAME})
 target_link_libraries(test_exception ${PROJECT_NAME})
+
+add_executable(test_fiber ${PROJECT_SOURCE_DIR}/tests/test_fiber.cc)
+add_dependencies(test_fiber ${PROJECT_NAME})
+target_link_libraries(test_fiber ${PROJECT_NAME})
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
