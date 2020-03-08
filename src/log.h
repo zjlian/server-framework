@@ -352,7 +352,7 @@ public:
     Logger::ptr getGlobal();
 
 private:
-    friend class LogIniter;
+    friend struct LogIniter;
     void init();
     void ensureGlobalLoggerExists(); // 确保存在全局日志器
     std::map<std::string, Logger::ptr> m_logger_map;
