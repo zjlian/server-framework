@@ -25,7 +25,7 @@ public:
         INIT,  // 初始化
         HOLD,  // 挂起
         EXEC,  // 执行
-        TERM,  //
+        TERM,  // 结束
         READY, // 预备
     };
 
@@ -39,15 +39,22 @@ public:
     // 挂起协程
     void swapOut();
 
+private:
+    Fiber();
+
 public:
     // 获取当前协程对象
     static Fiber::ptr GetThis();
+    // 设置当前协程对象
+    static void SetThis(Fiber* fiber);
     // 挂起当前协程，转换为 READY 状态
     static void YieldToReady();
     // 挂起当前协程，转换为 HOLD 状态
     static void YieldToHold();
     // 获取存在的协程数量
     static uint64_t TotalFiber();
+    // 协程入口函数
+    static void MainFunc();
 
 private:
     // 协程 id
@@ -59,7 +66,7 @@ private:
     // 协程上下文
     ucontext_t m_ctx;
     // 协程栈空间指针
-    void* m_stakc;
+    void* m_stack;
     // 协程执行函数
     FiberFunc m_callback;
 };
