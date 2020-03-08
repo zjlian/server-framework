@@ -1,5 +1,7 @@
 #include "exception.h"
+
 #include "util.h"
+#include <utility>
 
 namespace zjl
 {
@@ -9,8 +11,8 @@ namespace zjl
  * =======================================
 */
 
-Exception::Exception(std::string msg)
-    : m_message(std::move(msg)),
+Exception::Exception(std::string what)
+    : m_message(std::move(what)),
       m_stack(BacktraceToSring(200))
 {
 }
@@ -24,5 +26,4 @@ const char* Exception::stackTrace() const noexcept
 {
     return m_stack.c_str();
 }
-
 } // namespace zjl

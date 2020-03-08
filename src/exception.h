@@ -14,7 +14,7 @@ namespace zjl
 class Exception : public std::exception
 {
 public:
-    Exception(std::string what);
+    explicit Exception(std::string what);
     ~Exception() noexcept override = default;
 
     // 获取异常信息
