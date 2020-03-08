@@ -1,4 +1,5 @@
 #include "util.h"
+#include "fiber.h"
 #include <execinfo.h>
 #include <iostream>
 #include <sstream>
@@ -6,14 +7,14 @@
 namespace zjl
 {
 
-int GetThreadID()
+long GetThreadID()
 {
-    return syscall(SYS_gettid);
+    return ::syscall(SYS_gettid);
 }
 
-int GetFiberID()
+uint64_t GetFiberID()
 {
-    return 0;
+    return Fiber::GetFiberID();
 }
 
 void Backtrace(std::vector<std::string>& out, int size, int skip)
