@@ -243,7 +243,7 @@ public:
     typedef std::unique_ptr<Thread> uptr;
     typedef std::function<void()> ThreadFunc;
 
-    Thread(ThreadFunc callback, std::string name);
+    Thread(ThreadFunc callback, const std::string& name);
     ~Thread();
     // 获取线程 id
     pid_t getId() const;

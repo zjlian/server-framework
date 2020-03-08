@@ -134,15 +134,12 @@ Thread::GetThisThreadName()
     return t_thread_name;
 }
 
-void SetThisThreadName(const std::string& name)
+void Thread::SetThisThreadName(const std::string& name)
 {
-    // if (t_thread) {
-    //     t_thread->setName(name);
-    // }
-    t_thread_name = std::move(name);
+    t_thread_name = name;
 }
 
-Thread::Thread(ThreadFunc callback, std::string name)
+Thread::Thread(ThreadFunc callback, const std::string& name)
     : m_id(-1),
       m_name(name),
       m_thread(0),
