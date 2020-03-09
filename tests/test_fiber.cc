@@ -15,7 +15,8 @@ void fiberFunc()
         a = b;
         b = fib;
         // 挂起当前协程
-        zjl::Fiber::GetThis()->swapOut();
+//        zjl::Fiber::GetThis()->swapOut();
+        zjl::Fiber::YieldToReady();
     }
     std::cout << "fiberFunc() 结束" << std::endl;
 }
