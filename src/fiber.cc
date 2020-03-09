@@ -122,6 +122,7 @@ void Fiber::reset(FiberFunc callback)
 
 void Fiber::swapIn()
 {
+    // 只有线程是等待执行的状态才能被换入
     assert(m_state == INIT || m_state == READY || m_state == HOLD);
     SetThis(this);
     m_state = EXEC;
