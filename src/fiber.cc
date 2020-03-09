@@ -122,7 +122,7 @@ void Fiber::reset(FiberFunc callback)
 
 void Fiber::swapIn()
 {
-//    assert(m_state != EXEC);
+    assert(m_state == INIT || m_state == READY || m_state == HOLD);
     SetThis(this);
     m_state = EXEC;
     // 挂起 master fiber，切换到当前 fiber
@@ -134,6 +134,7 @@ void Fiber::swapIn()
 
 void Fiber::swapOut()
 {
+    assert(m_stack);
     SetThis(FiberInfo::t_master_fiber.get());
     // 挂起当前 fiber，切换到 master fiber
     if (swapcontext(&m_ctx, &(FiberInfo::t_master_fiber->m_ctx)))
@@ -192,6 +193,7 @@ uint64_t Fiber::GetFiberID()
 void Fiber::MainFunc()
 {
     auto current_fiber = GetThis();
+    auto logger = GET_LOGGER("system");
     try
     {
         current_fiber->m_callback();
@@ -201,24 +203,24 @@ void Fiber::MainFunc()
     catch (zjl::Exception& e)
     {
         LOG_FMT_ERROR(
-            GET_LOGGER("system"),
+            logger,
             "Fiber exception: %s, call stack:\n%s",
             e.what(),
             e.stackTrace());
     }
     catch (std::exception& e)
     {
-        LOG_FMT_ERROR(
-            GET_LOGGER("system"),
-            "Fiber exception: %s",
-            e.what());
+        LOG_FMT_ERROR(logger, "Fiber exception: %s", e.what());
     }
     catch (...)
     {
-        LOG_ERROR(
-            GET_LOGGER("system"),
-            "Fiber exception");
+        LOG_ERROR(logger, "Fiber exception");
     }
+    // 执行结束后，切回主协程
+    Fiber* current_fiber_ptr = current_fiber.get();
+    // 释放所有权
+    current_fiber.reset();
+    current_fiber_ptr->swapOut();
 }
 
 } // namespace zjl
