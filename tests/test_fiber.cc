@@ -6,9 +6,10 @@ int fib = 0;
 
 void fiberFunc()
 {
+    std::cout << "调用 fiberFunc()" << std::endl;
     int a = 0;
     int b = 1;
-    while (a < 9999999)
+    while (a < 20)
     {
         fib = a + b;
         a = b;
@@ -16,6 +17,7 @@ void fiberFunc()
         // 挂起当前协程
         zjl::Fiber::GetThis()->swapOut();
     }
+    std::cout << "fiberFunc() 结束" << std::endl;
 }
 
 int main(int, char**)
@@ -29,5 +31,7 @@ int main(int, char**)
         std::cout << fib << " ";
         fiber->swapIn();
     }
+    std::cout << "完成" << std::endl;
+
     return 0;
 }
