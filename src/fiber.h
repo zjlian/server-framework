@@ -44,14 +44,14 @@ public:
     void reset(FiberFunc callback);
     // 换入协程
     void swapIn();
-    // 挂起协程
-    void swapOut();
     // 获取协程 id
     uint64_t getID() const { return m_id; }
 
 private:
     // 用于创建 master fiber
     Fiber();
+    // 挂起协程，供静态函数调用的
+    void swapOut();
 
 public:
     // 获取当前 fiber 的指针指针
@@ -64,7 +64,7 @@ public:
     static void YieldToHold();
     // 获取存在的协程数量
     static uint64_t TotalFiber();
-    // 获取协程 id
+    // 获取当前协程 id
     static uint64_t GetFiberID();
     // 协程入口函数
     static void MainFunc();
