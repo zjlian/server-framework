@@ -25,10 +25,10 @@ public:
     enum State
     {
         INIT,     // 初始化
+        READY,    // 预备
         HOLD,     // 挂起
         EXEC,     // 执行
         TERM,     // 结束
-        READY,    // 预备
         EXCEPTION // 异常
     };
 
