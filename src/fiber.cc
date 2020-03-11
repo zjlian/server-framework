@@ -144,6 +144,11 @@ void Fiber::swapOut()
     }
 }
 
+bool Fiber::finish() const noexcept
+{
+    return (m_state == TERM || m_state == EXCEPTION);
+}
+
 Fiber::ptr Fiber::GetThis()
 {
     if (FiberInfo::t_fiber)
@@ -219,9 +224,10 @@ void Fiber::MainFunc()
     }
     // 执行结束后，切回主协程
     Fiber* current_fiber_ptr = current_fiber.get();
-    // 释放所有权
+    // 释放 shared_ptr 的所有权
     current_fiber.reset();
     current_fiber_ptr->swapOut();
 }
+
 
 } // namespace zjl

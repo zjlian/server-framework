@@ -38,20 +38,22 @@ public:
      * @param callback 协程执行函数
      * @param 协程栈大小，如果传 0，使用配置项 "fiber.stack_size" 定义的值
      * */
-    Fiber(FiberFunc callback, size_t stack_size = 0);
+    explicit Fiber(FiberFunc callback, size_t stack_size = 0);
     ~Fiber();
     // 更换协程执行函数
     void reset(FiberFunc callback);
-    // 换入协程
+    // 换入协程，该方法由 master fiber 调用
     void swapIn();
+    // 挂起协程，该方法由 master fiber 调用
+    void swapOut();
     // 获取协程 id
     uint64_t getID() const { return m_id; }
+    // 判断协程是否执行结束
+    bool finish() const noexcept;
 
 private:
     // 用于创建 master fiber
     Fiber();
-    // 挂起协程，供静态函数调用的
-    void swapOut();
 
 public:
     // 获取当前 fiber 的指针指针
