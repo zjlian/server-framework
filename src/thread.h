@@ -6,7 +6,7 @@
 #include <memory>
 #include <pthread.h>
 #include <semaphore.h>
-#include <stdint.h>
+#include <cstdint>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -38,7 +38,7 @@ template <typename T>
 class ScopedLockImpl
 {
 public:
-    ScopedLockImpl(T* mutex)
+    explicit ScopedLockImpl(T* mutex)
         : m_mutex(mutex)
     {
         m_mutex->lock();
@@ -78,7 +78,7 @@ template <typename T>
 class ReadScopedLockImpl
 {
 public:
-    ReadScopedLockImpl(T* mutex)
+    explicit ReadScopedLockImpl(T* mutex)
         : m_mutex(mutex)
     {
         m_mutex->readLock();
@@ -118,7 +118,7 @@ template <typename T>
 class WriteScopedLockImpl
 {
 public:
-    WriteScopedLockImpl(T* mutex)
+    explicit WriteScopedLockImpl(T* mutex)
         : m_mutex(mutex)
     {
         m_mutex->writeLock();
@@ -177,7 +177,7 @@ public:
     }
 
 private:
-    pthread_mutex_t m_mutex;
+    pthread_mutex_t m_mutex{};
 };
 
 /**
@@ -193,13 +193,11 @@ class RWLock
 public:
     RWLock()
     {
-        // TODO 初始化异常处理
         pthread_rwlock_init(&m_lock, nullptr);
     }
 
     ~RWLock()
     {
-        // TODO 销毁异常处理
         pthread_rwlock_destroy(&m_lock);
     }
 
@@ -219,7 +217,7 @@ public:
     }
 
 private:
-    pthread_rwlock_t m_lock;
+    pthread_rwlock_t m_lock{};
 };
 
 /**
