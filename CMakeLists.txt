@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD 14)
 # 引入boost
 #set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost 1.58.0 COMPONENTS REQUIRED)
-if(Boost_FOUND)
+if (Boost_FOUND)
 
     message(STATUS "Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
     message(STATUS "Boost_LIBRARIES: ${Boost_LIBRARIES}")
@@ -18,20 +18,20 @@ if(Boost_FOUND)
 
     include_directories(${Boost_INCLUDE_DIRS})
 
-endif()
+endif ()
 
 include_directories(.)
 include_directories(/usr/local/include)
 link_directories(/usr/local/lib)
 
 add_library(${PROJECT_NAME} SHARED
-src/log.cpp src/log.h
-src/util.cpp src/util.h
-src/config.cpp src/config.h
-src/thread.cc src/thread.h
-src/exception.cc src/exception.h
-src/fiber.cc src/fiber.h
-)
+        src/log.cpp src/log.h
+        src/util.cpp src/util.h
+        src/config.cpp src/config.h
+        src/thread.cc src/thread.h
+        src/exception.cc src/exception.h
+        src/fiber.cc src/fiber.h
+        src/scheduler.cpp src/scheduler.h)
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} yaml-cpp pthread)
 
 add_executable(test_log ${PROJECT_SOURCE_DIR}/tests/test_log.cc)
