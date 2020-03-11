@@ -25,13 +25,13 @@ include_directories(/usr/local/include)
 link_directories(/usr/local/lib)
 
 add_library(${PROJECT_NAME} SHARED
-        src/log.cpp src/log.h
-        src/util.cpp src/util.h
-        src/config.cpp src/config.h
+        src/log.cc src/log.h
+        src/util.cc src/util.h
+        src/config.cc src/config.h
         src/thread.cc src/thread.h
         src/exception.cc src/exception.h
         src/fiber.cc src/fiber.h
-        src/scheduler.cpp src/scheduler.h)
+        src/scheduler.cc src/scheduler.h)
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} yaml-cpp pthread)
 
 add_executable(test_log ${PROJECT_SOURCE_DIR}/tests/test_log.cc)
