@@ -32,7 +32,6 @@ Semaphore::Semaphore(uint32_t count)
             system_logger,
             "sem_init() 初始化信号量失败");
         throw std::system_error();
-        // TODO 失败时是否应该直接结束程序？
     }
 }
 
