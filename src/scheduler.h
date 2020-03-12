@@ -1,7 +1,6 @@
 #ifndef SERVER_FRAMEWORK_SCHEDULER_H
 #define SERVER_FRAMEWORK_SCHEDULER_H
 
-class uptr;
 #include "fiber.h"
 #include "thread.h"
 #include <list>
@@ -60,16 +59,16 @@ public: // 内部类型、静态方法
     // 获取当前线程的调度器
     static Scheduler* GetThis();
     // 获取当前线程的 master fiber
-    static Fiber* GetMasterFiber();
+    static Fiber* GetMainFiber();
 
 public: // 实例方法
     /**
      * @brief 构造函数
      * @param thread_size 线程池线程数量
-     * @param use_caller 是否将 Scheduler 实例所在的线程作为任务执行环境
+     * @param use_caller 是否将 Scheduler 实例化所在的线程作为 master fiber
      * @param name 调度器名称
      * */
-    Scheduler(size_t thread_size, bool use_caller = true, std::string name = "");
+    explicit Scheduler(size_t thread_size, bool use_caller = true, std::string name = "");
     virtual ~Scheduler();
 
     void start();
@@ -88,16 +87,18 @@ public: // 实例方法
         {
             ScopedLock lock(&m_mutex);
             // std::forward
-            need_tickle = scheduleNonBlock(
-                std::forward<Executable>(exec), thread_id);
+            need_tickle = scheduleNonBlock(std::forward<Executable>(exec), thread_id);
         }
+        // 该工作了
         if (need_tickle)
             tickle();
     }
 
 protected:
-    virtual void tickle() {};
-
+    void run();
+    virtual void tickle();
+    // 调度器停止时的回调函数
+    virtual bool onStop() {}
 private:
     /**
      * @brief 添加任务 non-thread-safe
@@ -111,8 +112,7 @@ private:
     {
         bool need_tickle = m_task_list.empty();
         // std::forward
-        auto task = std::make_unique<Task>(
-            std::forward<Executable>(exec), thread_id);
+        auto task = std::make_unique<Task>(std::forward<Executable>(exec), thread_id);
         // 创建的任务实例存在有效的 zjl::Fiber 或 std::function
         if (task->fiber || task->callback)
         {
@@ -121,10 +121,28 @@ private:
         return need_tickle;
     }
 
+protected:
+    // 主线程 id
+    long m_root_thread_id = 0;
+    // 线程 id 列表
+    std::vector<long> m_thread_id_list;
+    // 有效线程数量
+    size_t m_thread_count = 0;
+    // 活跃线程数量
+    size_t m_active_thread_count = 0;
+    // 空闲线程数量
+    size_t m_idle_thread_count = 0;
+    // 执行停止状态
+    bool m_stopping = true;
+    // 是否自动停止
+    bool m_auto_stop = false;
+
 private:
     mutable Mutex m_mutex;
     const std::string m_name;
-    // 线程集合
+    // 负责调度的协程
+    Fiber::ptr m_root_fiber;
+    // 线程对象列表
     std::vector<Thread::ptr> m_thread_list;
     // 任务集合
     std::list<Task::uptr> m_task_list;
