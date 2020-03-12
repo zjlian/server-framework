@@ -48,6 +48,8 @@ public:
     void swapOut();
     // 获取协程 id
     uint64_t getID() const { return m_id; }
+    // 获取协程状态
+    State getState() const { return m_state; }
     // 判断协程是否执行结束
     bool finish() const noexcept;
 
@@ -56,7 +58,7 @@ private:
     Fiber();
 
 public:
-    // 获取当前 fiber 的指针指针
+    // 获取当前正在执行的 fiber 的智能指针，如果不存在，则在当前线程上创建 master fiber
     static Fiber::ptr GetThis();
     // 设置当前 fiber
     static void SetThis(Fiber* fiber);
