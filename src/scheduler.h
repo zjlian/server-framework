@@ -3,8 +3,10 @@
 
 #include "fiber.h"
 #include "thread.h"
+#include <atomic>
 #include <list>
 #include <memory>
+#include <unistd.h>
 #include <utility>
 #include <vector>
 
@@ -27,14 +29,16 @@ private: // 内部类
         using uptr = std::unique_ptr<Task>;
         using TaskFunc = std::function<void()>;
 
-        Fiber::uptr fiber;
+        Fiber::ptr fiber;
         TaskFunc callback;
         long thread_id; // 任务要绑定执行线程的 id
 
         Task()
             : thread_id(-1) {}
 
-        Task(Fiber::uptr f, long tid)
+        Task(const Task& rhs) = default;
+
+        Task(Fiber::ptr f, long tid)
             : fiber(std::move(f)), thread_id(tid) {}
 
         Task(const TaskFunc& cb, long tid)
@@ -43,6 +47,8 @@ private: // 内部类
         Task(TaskFunc&& cb, long tid)
             : callback(std::move(cb)), thread_id(tid) {}
 
+        Task& operator=(const Task& rhs) = default;
+
         void reset()
         {
             fiber = nullptr;
@@ -50,7 +56,6 @@ private: // 内部类
             thread_id = -1;
         }
     };
-
 
 public: // 内部类型、静态方法
     using ptr = std::shared_ptr<Scheduler>;
@@ -78,10 +83,11 @@ public: // 实例方法
      * @brief 添加任务 thread-safe
      * @param Executable 模板类型必须是 std::unique_ptr<zjl::Fiber> 或者 std::function
      * @param exec Executable 的实例
+     * @param instant 是否优先调度
      * @param thread_id 任务要绑定执行线程的 id
      * */
     template <typename Executable>
-    void schedule(Executable&& exec, long thread_id = -1)
+    void schedule(Executable&& exec, long thread_id = -1, bool instant = false)
     {
         bool need_tickle = false;
         {
@@ -98,17 +104,28 @@ protected:
     void run();
     virtual void tickle();
     // 调度器停止时的回调函数
-    virtual bool onStop() {}
+    virtual bool onStop() { return false; }
+    // 调度器空闲时的回调函数
+    virtual bool onIdle()
+    {
+        while (true)
+        {
+            sleep(0);
+        }
+        return false;
+    }
+
 private:
     /**
      * @brief 添加任务 non-thread-safe
      * @param Executable 模板类型必须是 std::unique_ptr<zjl::Fiber> 或者 std::function
      * @param exec Executable 的实例
      * @param thread_id 任务要绑定执行线程的 id
-     * @return 是否是第一个新任务
+     * @param instant 是否优先调度
+     * @return 是否是空闲状态下的第一个新任务
      * */
     template <typename Executable>
-    bool scheduleNonBlock(Executable&& exec, long thread_id = -1)
+    bool scheduleNonBlock(Executable&& exec, long thread_id = -1, bool instant = false)
     {
         bool need_tickle = m_task_list.empty();
         // std::forward
@@ -116,7 +133,10 @@ private:
         // 创建的任务实例存在有效的 zjl::Fiber 或 std::function
         if (task->fiber || task->callback)
         {
-            m_task_list.push_back(std::move(task));
+            if (instant)
+                m_task_list.push_front(std::move(task));
+            else
+                m_task_list.push_back(std::move(task));
         }
         return need_tickle;
     }
@@ -129,9 +149,9 @@ protected:
     // 有效线程数量
     size_t m_thread_count = 0;
     // 活跃线程数量
-    size_t m_active_thread_count = 0;
+    std::atomic_uint64_t m_active_thread_count;
     // 空闲线程数量
-    size_t m_idle_thread_count = 0;
+    std::atomic_uint64_t m_idle_thread_count;
     // 执行停止状态
     bool m_stopping = true;
     // 是否自动停止
