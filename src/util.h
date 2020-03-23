@@ -34,7 +34,7 @@ void Backtrace(std::vector<std::string>& out, int size = 200, int skip = 1);
  * @param size 获取调用栈的最大层数，默认值为 200
  * @param skip 省略最近 n 层调用栈，默认值为 2，忽略获取 BacktraceToSring() 和 Backtrace() 的调用栈
 */
-std::string BacktraceToSring(int size = 200, int skip = 2);
+std::string BacktraceToString(int size = 200, int skip = 2);
 
 } // namespace zjl
 #endif

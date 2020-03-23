@@ -13,7 +13,7 @@ namespace zjl
 
 Exception::Exception(std::string what)
     : m_message(std::move(what)),
-      m_stack(BacktraceToSring(200))
+      m_stack(BacktraceToString(200))
 {
 }
 
