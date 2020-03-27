@@ -1,6 +1,7 @@
 #include "fiber.h"
 #include "exception.h"
 #include "log.h"
+#include "scheduler.h"
 #include <cassert>
 #include <cerrno>
 #include <cstring>
@@ -8,6 +9,8 @@
 
 namespace zjl
 {
+
+static Logger::ptr g_logger = GET_LOGGER("system");
 
 /**
  * @brief 对 malloc/free 简单封装的内存分配器
@@ -53,6 +56,9 @@ Fiber::Fiber()
     }
     // 存在协程数量增加
     ++FiberInfo::s_fiber_count;
+    LOG_FMT_DEBUG(g_logger,
+                  "调用 Fiber::~Fiber 创建 master fiber，thread_id = %ld, fiber_id = %ld",
+                  GetThreadID(), m_id);
 }
 
 Fiber::Fiber(FiberFunc callback, size_t stack_size)
@@ -82,10 +88,28 @@ Fiber::Fiber(FiberFunc callback, size_t stack_size)
     makecontext(&m_ctx, &Fiber::MainFunc, 0);
 
     ++FiberInfo::s_fiber_count;
+    LOG_FMT_DEBUG(g_logger,
+                  "调用 Fiber::~Fiber 创建协程，thread_id = %ld, fiber_id = %ld",
+                  GetThreadID(), m_id);
 }
+
+//Fiber::Fiber(const Fiber& rhs)
+//    : m_id(++FiberInfo::s_fiber_id),
+//      m_stack_size(rhs.m_stack_size),
+//      m_state(rhs.m_state),
+//      m_ctx(rhs.m_ctx),
+//      m_stack(nullptr)
+//{
+//    m_stack = StackAllocator::Alloc(m_stack_size);
+//    ::memcpy(m_stack, rhs.m_stack, m_stack_size);
+//    m_ctx.uc_stack.ss_sp = m_stack;
+//}
 
 Fiber::~Fiber()
 {
+    LOG_FMT_DEBUG(g_logger,
+                  "调用 Fiber::~Fiber 析构协程，thread_id = %ld, fiber_id = %ld",
+                  GetThreadID(), m_id);
     if (m_stack) // 存在栈，说明是子协程，释放申请的协程栈空间
     {
         // 只有子协程未被启动或者执行结束，才能被析构，否则属于程序错误
@@ -122,6 +146,8 @@ void Fiber::reset(FiberFunc callback)
 
 void Fiber::swapIn()
 {
+//    assert(Scheduler::GetThis()->m_root_thread_id == -1 ||
+//           Scheduler::GetThis()->m_root_thread_id != GetThreadID());
     // 只有线程是等待执行的状态才能被换入
     assert(m_state == INIT || m_state == READY || m_state == HOLD);
     SetThis(this);
@@ -135,10 +161,33 @@ void Fiber::swapIn()
 
 void Fiber::swapOut()
 {
+//    assert(Scheduler::GetThis()->m_root_thread_id == -1 ||
+//           Scheduler::GetThis()->m_root_thread_id != GetThreadID());
     assert(m_stack);
     SetThis(FiberInfo::t_master_fiber.get());
     // 挂起当前 fiber，切换到 master fiber
     if (swapcontext(&m_ctx, &(FiberInfo::t_master_fiber->m_ctx)))
+    {
+        throw Exception(std::string(::strerror(errno)));
+    }
+}
+
+void Fiber::swapIn(Fiber::ptr fiber)
+{
+    assert(m_state == INIT || m_state == READY || m_state == HOLD);
+    SetThis(this);
+    m_state = EXEC;
+    if (swapcontext(&(fiber->m_ctx), &m_ctx))
+    {
+        throw Exception(std::string(::strerror(errno)));
+    }
+}
+
+void Fiber::swapOut(Fiber::ptr fiber)
+{
+    assert(m_state);
+    SetThis(fiber.get());
+    if (swapcontext(&m_ctx, &(fiber->m_ctx)))
     {
         throw Exception(std::string(::strerror(errno)));
     }
@@ -151,15 +200,16 @@ bool Fiber::finish() const noexcept
 
 Fiber::ptr Fiber::GetThis()
 {
-    if (FiberInfo::t_fiber)
+    LOG_FMT_DEBUG(g_logger, "GetThis() fiber id = %ld, callstack: \n%s\n",
+                  GetFiberID(), BacktraceToString().c_str());
+    if (FiberInfo::t_fiber != nullptr)
     {
         // 调用 std::enable_shared_from_this::shared_from_this() 获取对象 this 的智能指针
         return FiberInfo::t_fiber->shared_from_this();
     }
     // 当 FiberInfo::t_fiber 是 nullptr 时，说明该线程不存在 master fiber
     // 初始化 master_fiber
-    Fiber::ptr first_fiber(new Fiber());
-    FiberInfo::t_master_fiber.swap(first_fiber);
+    FiberInfo::t_master_fiber.reset(new Fiber());
     return FiberInfo::t_master_fiber->shared_from_this();
 }
 
@@ -172,14 +222,28 @@ void Fiber::YieldToReady()
 {
     auto current_fiber = GetThis();
     current_fiber->m_state = READY;
-    current_fiber->swapOut();
+    if (Scheduler::GetThis()->m_root_thread_id == GetThreadID())
+    { // 调度器实例化时 use_caller 为 true, 并且当前协程所在的线程就是 root thread
+        current_fiber->swapOut(Scheduler::GetThis()->m_root_fiber);
+    }
+    else
+    {
+        current_fiber->swapOut();
+    }
 }
 
 void Fiber::YieldToHold()
 {
     auto current_fiber = GetThis();
     current_fiber->m_state = HOLD;
-    current_fiber->swapOut();
+    if (Scheduler::GetThis()->m_root_thread_id == GetThreadID())
+    { // 调度器实例化时 use_caller 为 true, 并且当前协程所在的线程就是 root thread
+        current_fiber->swapOut(Scheduler::GetThis()->m_root_fiber);
+    }
+    else
+    {
+        current_fiber->swapOut();
+    }
 }
 
 uint64_t Fiber::TotalFiber()
@@ -189,7 +253,7 @@ uint64_t Fiber::TotalFiber()
 
 uint64_t Fiber::GetFiberID()
 {
-    if (FiberInfo::t_fiber)
+    if (FiberInfo::t_fiber != nullptr)
     {
         return FiberInfo::t_fiber->getID();
     }
@@ -226,8 +290,15 @@ void Fiber::MainFunc()
     Fiber* current_fiber_ptr = current_fiber.get();
     // 释放 shared_ptr 的所有权
     current_fiber.reset();
-    current_fiber_ptr->swapOut();
+    if (Scheduler::GetThis()->m_root_thread_id == GetThreadID())
+    { // 调度器实例化时 use_caller 为 true, 并且当前协程所在的线程就是 root thread
+        current_fiber_ptr->swapOut(Scheduler::GetThis()->m_root_fiber);
+    }
+    else
+    {
+        current_fiber_ptr->swapOut();
+    }
+    assert(false && "协程已经结束");
 }
-
 
 } // namespace zjl

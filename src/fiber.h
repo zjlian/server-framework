@@ -39,13 +39,24 @@ public:
      * @param 协程栈大小，如果传 0，使用配置项 "fiber.stack_size" 定义的值
      * */
     explicit Fiber(FiberFunc callback, size_t stack_size = 0);
+//    Fiber(const Fiber& rhs);
     ~Fiber();
     // 更换协程执行函数
     void reset(FiberFunc callback);
-    // 换入协程，该方法由 master fiber 调用
+    // 换入协程，该方法通常 master fiber 调用
     void swapIn();
-    // 挂起协程，该方法由 master fiber 调用
+    // 挂起协程，该方法通常 master fiber 调用
     void swapOut();
+    /**
+     * @brief 换入协程，该方法通常由调度器调用
+     * @param ctx 指定存储当前协程上下文信息的指针
+     * */
+    void swapIn(Fiber::ptr fiber);
+    /**
+     * @brief 挂起协程，该方法通常由调度器调用
+     * @param ctx 指定要恢复的协程
+     * */
+    void swapOut(Fiber::ptr fiber);
     // 获取协程 id
     uint64_t getID() const { return m_id; }
     // 获取协程状态
@@ -96,9 +107,9 @@ static std::atomic_uint64_t s_fiber_id{0};
 // 存在的协程数量
 static std::atomic_uint64_t s_fiber_count{0};
 
-// 当前协程
+// 当前线程正在执行的协程
 static thread_local Fiber* t_fiber = nullptr;
-// 主协程
+// 当前线程的主协程
 static thread_local Fiber::ptr t_master_fiber{};
 
 // 协程栈大小配置项
