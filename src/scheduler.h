@@ -57,13 +57,14 @@ private: // 内部类
         }
     };
 
-public: // 内部类型、静态方法
+public: // 内部类型、静态方法、友元声明
+    friend class Fiber;
     using ptr = std::shared_ptr<Scheduler>;
     using uptr = std::unique_ptr<Scheduler>;
 
-    // 获取当前线程的调度器
+    // 获取当前协程的调度器
     static Scheduler* GetThis();
-    // 获取当前线程的 master fiber
+    // 获取调度器的调度工作协程
     static Fiber* GetMainFiber();
 
 public: // 实例方法
@@ -110,7 +111,8 @@ protected:
     {
         while (true)
         {
-            sleep(0);
+//            sleep(0);
+            Fiber::YieldToHold();
         }
         return false;
     }
@@ -142,16 +144,16 @@ private:
     }
 
 protected:
-    // 主线程 id
+    // 主线程 id，仅在 use_caller 为 true 时会被设置有效线程 id
     long m_root_thread_id = 0;
     // 线程 id 列表
     std::vector<long> m_thread_id_list;
     // 有效线程数量
     size_t m_thread_count = 0;
     // 活跃线程数量
-    std::atomic_uint64_t m_active_thread_count;
+    std::atomic_uint64_t m_active_thread_count{};
     // 空闲线程数量
-    std::atomic_uint64_t m_idle_thread_count;
+    std::atomic_uint64_t m_idle_thread_count{};
     // 执行停止状态
     bool m_stopping = true;
     // 是否自动停止
@@ -160,12 +162,12 @@ protected:
 private:
     mutable Mutex m_mutex;
     const std::string m_name;
-    // 负责调度的协程
+    // 负责调度的协程，仅在类实例化参数中 use_caller 为 true 时有效
     Fiber::ptr m_root_fiber;
     // 线程对象列表
     std::vector<Thread::ptr> m_thread_list;
     // 任务集合
-    std::list<Task::uptr> m_task_list;
+    std::list<Task::ptr> m_task_list;
 };
 } // namespace zjl
 
