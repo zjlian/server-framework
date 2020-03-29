@@ -200,8 +200,8 @@ bool Fiber::finish() const noexcept
 
 Fiber::ptr Fiber::GetThis()
 {
-    LOG_FMT_DEBUG(g_logger, "GetThis() fiber id = %ld, callstack: \n%s\n",
-                  GetFiberID(), BacktraceToString().c_str());
+//    LOG_FMT_DEBUG(g_logger, "GetThis() fiber id = %ld, callstack: \n%s\n",
+//                  GetFiberID(), BacktraceToString().c_str());
     if (FiberInfo::t_fiber != nullptr)
     {
         // 调用 std::enable_shared_from_this::shared_from_this() 获取对象 this 的智能指针
@@ -222,7 +222,7 @@ void Fiber::YieldToReady()
 {
     auto current_fiber = GetThis();
     current_fiber->m_state = READY;
-    if (Scheduler::GetThis()->m_root_thread_id == GetThreadID())
+    if (Scheduler::GetThis() && Scheduler::GetThis()->m_root_thread_id == GetThreadID())
     { // 调度器实例化时 use_caller 为 true, 并且当前协程所在的线程就是 root thread
         current_fiber->swapOut(Scheduler::GetThis()->m_root_fiber);
     }
@@ -236,7 +236,7 @@ void Fiber::YieldToHold()
 {
     auto current_fiber = GetThis();
     current_fiber->m_state = HOLD;
-    if (Scheduler::GetThis()->m_root_thread_id == GetThreadID())
+    if (Scheduler::GetThis() && Scheduler::GetThis()->m_root_thread_id == GetThreadID())
     { // 调度器实例化时 use_caller 为 true, 并且当前协程所在的线程就是 root thread
         current_fiber->swapOut(Scheduler::GetThis()->m_root_fiber);
     }
@@ -290,7 +290,7 @@ void Fiber::MainFunc()
     Fiber* current_fiber_ptr = current_fiber.get();
     // 释放 shared_ptr 的所有权
     current_fiber.reset();
-    if (Scheduler::GetThis()->m_root_thread_id == GetThreadID())
+    if (Scheduler::GetThis() && Scheduler::GetThis()->m_root_thread_id == GetThreadID())
     { // 调度器实例化时 use_caller 为 true, 并且当前协程所在的线程就是 root thread
         current_fiber_ptr->swapOut(Scheduler::GetThis()->m_root_fiber);
     }
