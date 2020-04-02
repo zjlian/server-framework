@@ -109,11 +109,11 @@ protected:
     // 调度器空闲时的回调函数
     virtual bool onIdle()
     {
-        while (true)
-        {
+//        while (true)
+//        {
 //            sleep(0);
-            Fiber::YieldToHold();
-        }
+//            Fiber::YieldToHold();
+//        }
         return false;
     }
 

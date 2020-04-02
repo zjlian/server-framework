@@ -111,6 +111,17 @@ void Scheduler::stop()
     {
         tickle();
     }
+    // join 所有子线程
+//    std::vector<Thread::ptr> thread_list;
+//    {
+//        ScopedLock lock(&m_mutex);
+//        thread_list.swap(m_thread_list);
+//    }
+    for (auto& t : m_thread_list)
+    {
+        t->join();
+    }
+
     if (onStop())
     {
         return;
@@ -119,7 +130,7 @@ void Scheduler::stop()
 
 void Scheduler::tickle()
 {
-    LOG_DEBUG(g_logger, "调用 Scheduler::tickle()");
+//    LOG_DEBUG(g_logger, "调用 Scheduler::tickle()");
 }
 
 /**
@@ -132,7 +143,6 @@ void Scheduler::run()
     // 判断执行 run() 函数的线程，是否是线程池中的线程
     if (GetThreadID() != m_root_thread_id)
     { // 当前线程不存在 master fiber, 创建一个
-        std::cout << GetThreadID() << "  " << m_root_thread_id << std::endl;
         t_scheduler_fiber = Fiber::GetThis().get();
     }
     // 线程空闲时执行的协程
@@ -193,7 +203,7 @@ void Scheduler::run()
                 // 使用 m_root_fiber 作为 master fiber
                 task.fiber->swapIn(m_root_fiber);
             }
-            else if (m_root_thread_id == -1)
+            else/* if (m_root_thread_id == -1)*/
             {
                 task.fiber->swapIn();
             }
