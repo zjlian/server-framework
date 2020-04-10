@@ -51,7 +51,7 @@ Scheduler::Scheduler(size_t thread_size, bool use_caller, std::string name)
 Scheduler::~Scheduler()
 {
     LOG_DEBUG(g_logger, "调用 Scheduler::~Scheduler()");
-    assert(m_stopping);
+    assert(m_auto_stop);
     if (GetThis() == this)
     {
         t_scheduler = nullptr;
@@ -111,26 +111,28 @@ void Scheduler::stop()
     {
         tickle();
     }
-    // join 所有子线程
-//    std::vector<Thread::ptr> thread_list;
-//    {
-//        ScopedLock lock(&m_mutex);
-//        thread_list.swap(m_thread_list);
-//    }
-    for (auto& t : m_thread_list)
-    {
-        t->join();
+    { // join 所有子线程
+        for (auto& t : m_thread_list)
+        {
+            t->join();
+        }
+        m_thread_list.clear();
     }
-
     if (onStop())
     {
         return;
     }
 }
 
+bool Scheduler::isStop()
+{
+    // 调用过 Scheduler::stop()，并且任务列表没有新任务，也没有正在执行的协程，说明调度器已经彻底停止
+    return m_auto_stop && m_task_list.empty() && m_active_thread_count == 0;
+}
+
 void Scheduler::tickle()
 {
-//    LOG_DEBUG(g_logger, "调用 Scheduler::tickle()");
+    //    LOG_DEBUG(g_logger, "调用 Scheduler::tickle()");
 }
 
 /**
@@ -148,12 +150,7 @@ void Scheduler::run()
     // 线程空闲时执行的协程
     auto idle_fiber = std::make_shared<Fiber>(
         std::bind(&Scheduler::onIdle, this));
-    // 执行 std::function 的协程
-    //    auto callback_fiber = std::make_unique<Fiber>(
-    //        []() { assert(false && "callback_fiber 还没有设置有效的执行函数"); });
-    /**
-     * 开始调度
-     * */
+    // 开始调度
     Task task;
     while (true)
     {
@@ -180,6 +177,7 @@ void Scheduler::run()
                 }
                 // 找到可以执行的任务，拷贝一份
                 task = **iter;
+                ++m_active_thread_count;
                 // 从任务列表里移除该任务
                 m_task_list.erase(iter);
                 break;
@@ -196,14 +194,13 @@ void Scheduler::run()
         }
         if (task.fiber && !task.fiber->finish())
         { // 是 fiber 任务
-            ++m_active_thread_count;
             if (GetThreadID() == m_root_thread_id)
             {
                 // m_root_thread_id 等于当前线程 id，说明构造调度器时 use_caller 为 true
                 // 使用 m_root_fiber 作为 master fiber
                 task.fiber->swapIn(m_root_fiber);
             }
-            else/* if (m_root_thread_id == -1)*/
+            else
             {
                 task.fiber->swapIn();
             }
@@ -222,7 +219,7 @@ void Scheduler::run()
         }
         else
         { // 任务队列空了，执行 idle_fiber
-            if (idle_fiber->finish() || m_stopping)
+            if (idle_fiber->finish())
             {
                 break;
             }
@@ -239,22 +236,8 @@ void Scheduler::run()
             }
             --m_idle_thread_count;
         }
-        //        else if (task.callback) // 是 std::function 任务，让 callback_fiber 来执行
-        //        {
-        //            callback_fiber->reset(std::move(task.callback));
-        //            task.reset();
-        //            ++m_active_thread_count;
-        //            callback_fiber->swapIn();
-        //            --m_active_thread_count;
-        //            // callback_fiber 换出后
-        //            // 如果 callback_fiber 未完成，TODO 将其转换为 fiber 任务，加入任务队列
-        //            if (!callback_fiber->finish())
-        //            {
-        //                schedule(std::move(callback_fiber));
-        //            }
-        //            callback_fiber->reset(nullptr);
-        //        }
     }
+    LOG_DEBUG(g_logger, "run() 结束");
 }
 
 } // namespace zjl

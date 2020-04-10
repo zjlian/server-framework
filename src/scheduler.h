@@ -79,6 +79,7 @@ public: // 实例方法
 
     void start();
     void stop();
+    bool isStop();
 
     /**
      * @brief 添加任务 thread-safe
@@ -109,11 +110,11 @@ protected:
     // 调度器空闲时的回调函数
     virtual bool onIdle()
     {
-//        while (true)
-//        {
-//            sleep(0);
-//            Fiber::YieldToHold();
-//        }
+        while (!isStop())
+        {
+            sleep(0);
+            Fiber::YieldToHold();
+        }
         return false;
     }
 
