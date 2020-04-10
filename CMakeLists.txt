@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 14)
 
 # 引入boost
 #set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.58.0 COMPONENTS REQUIRED)
+find_package(Boost COMPONENTS REQUIRED)
 if (Boost_FOUND)
 
     message(STATUS "Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
@@ -31,7 +31,8 @@ add_library(${PROJECT_NAME} SHARED
         src/thread.cc src/thread.h
         src/exception.cc src/exception.h
         src/fiber.cc src/fiber.h
-        src/scheduler.cc src/scheduler.h)
+        src/scheduler.cc src/scheduler.h
+        src/IOManager.cc src/IOManager.h)
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} yaml-cpp pthread)
 
 add_executable(test_log ${PROJECT_SOURCE_DIR}/tests/test_log.cc)
