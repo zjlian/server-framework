@@ -17,7 +17,7 @@
 #include <vector>
 
 #define MAKE_LOG_EVENT(level, massage) \
-    std::make_shared<zjl::LogEvent>(__FILE__, __LINE__, zjl::GetThreadID(), zjl::GetFiberID(), time(nullptr), massage, level)
+    std::make_shared<zjl::LogEvent>(__FILE__, __LINE__, zjl::GetThreadID(), zjl::GetFiberID(), ::time(nullptr), massage, level)
 
 #define LOG_LEVEL(logger, level, massage) \
     logger->log(MAKE_LOG_EVENT(level, massage));
