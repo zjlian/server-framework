@@ -4,6 +4,12 @@
 #include <exception>
 #include <string>
 
+#define THROW_EXCEPTION_WHIT_ERRNO                       \
+    do                                                   \
+    {                                                    \
+        throw Exception(std::string(::strerror(errno))); \
+    } while (0)
+
 namespace zjl
 {
 
@@ -15,6 +21,7 @@ class Exception : public std::exception
 {
 public:
     explicit Exception(std::string what);
+    Exception(const Exception& rhs) = default;
     ~Exception() noexcept override = default;
 
     // 获取异常信息

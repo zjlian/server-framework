@@ -1,5 +1,4 @@
 #include "exception.h"
-
 #include "util.h"
 #include <utility>
 
