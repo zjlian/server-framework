@@ -117,10 +117,6 @@ struct ThreadData
  * Thread 类的实现
  * ===================================================
 */
-// Thread*
-// Thread::GetThis() {
-//     return t_thread;
-// }
 
 pid_t Thread::GetThisId()
 {
