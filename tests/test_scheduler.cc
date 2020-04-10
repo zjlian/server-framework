@@ -11,15 +11,27 @@ void fn(const char* msg)
     }
 }
 
+void fn2(uint32_t t, int32_t c)
+{
+    sleep(t);
+    LOG_FMT_INFO(GET_ROOT_LOGGER(), "delayed: %d, count: %d", t, c);
+    if (c > 0)
+    {
+        zjl::Scheduler::GetThis()->schedule(std::bind(fn2, t, c - 1));
+    }
+}
+
 int main(int, char**)
 {
     zjl::Scheduler sc(3, false);
     sc.start();
+    sc.schedule(std::bind(fn2, 1, 4));
+    sc.schedule(std::bind(fn2, 2, 4));
+    sc.schedule(std::bind(fn2, 3, 4));
     sc.schedule(std::bind(fn, "协程 0"));
     sc.schedule(std::bind(fn, "协程 1"));
     sc.schedule(std::bind(fn, "协程 2"));
     sc.schedule(std::bind(fn, "协程 3"));
-    sleep(1);
     sc.stop();
     return 0;
 }
