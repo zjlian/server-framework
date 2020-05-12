@@ -108,6 +108,7 @@ void TEST_multiThreadLog()
 
 int main()
 {
+    // TEST
     TEST_macroDefaultLogger();
     // TEST_defaultLogger();
     // TEST_macroDefaultLogger();
