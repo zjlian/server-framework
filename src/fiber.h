@@ -14,7 +14,7 @@ namespace zjl
 /**
  * @brief 协程类
 */
-class Fiber : public std::enable_shared_from_this<Fiber>
+class Fiber : public std::enable_shared_from_this<Fiber>, public zjl::noncopyable
 {
 public:
     using ptr = std::shared_ptr<Fiber>;

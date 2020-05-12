@@ -3,6 +3,8 @@
 
 #include <exception>
 #include <string>
+#include <cstring>
+#include <cerrno>
 
 #define THROW_EXCEPTION_WHIT_ERRNO                       \
     do                                                   \

@@ -16,7 +16,7 @@ namespace zjl
 /**
  * @brief 协程调度器
  * */
-class Scheduler
+class Scheduler : public noncopyable
 {
 private: // 内部类
     /**
