@@ -1,4 +1,4 @@
-#include "IOManager.h"
+#include "io_manager.h"
 #include "exception.h"
 #include "log.h"
 #include <cstring>
@@ -234,10 +234,8 @@ bool IOManager::cancelEventListener(int fd, IOManager::EventType event)
         THROW_EXCEPTION_WHIT_ERRNO;
     }
     fd_ctx->m_events = new_event;
-    // auto& event_handler = fd_ctx->getEventHandler(event);
     fd_ctx->triggerEvent(event);
     // TODO 是否需要清除对应的处理器？
-    // fd_ctx->resetHandler(event_handler);
     --m_pending_event_count;
     return true;
 }
@@ -271,16 +269,15 @@ bool IOManager::cancelAll(int fd)
     }
     if (fd_ctx->m_events & EventType::READ)
     {
-        auto& event_handler = fd_ctx->getEventHandler(EventType::READ);
-        fd_ctx->triggerEvent(event_handler);
+        fd_ctx->triggerEvent(EventType::READ);
         --m_pending_event_count;
     }
     if (fd_ctx->m_events & EventType::WRITE)
     {
-        auto& event_handler = fd_ctx->getEventHandler(EventType::WRITE);
-        fd_ctx->triggerEvent(event_handler);
+        fd_ctx->triggerEvent(EventType::WRITE);
         --m_pending_event_count;
     }
+    // TODO 移除对应的事件处理器？
     fd_ctx->m_events = EventType::NONE;
     return true;
 }
@@ -327,8 +324,22 @@ void IOManager::FDContext::resetHandler(IOManager::FDContext::EventHandler& hand
     handler.m_scheduler = nullptr;
 }
 
-void IOManager::FDContext::triggerEvent(IOManager::FDContext::EventHandler& handler)
+void IOManager::FDContext::triggerEvent(EventType type)
 {
+    assert(m_events & type);
+    m_events = static_cast<EventType>(m_events & ~type);
+    auto& handler = getEventHandler(type);
+    assert(handler.m_scheduler);
+    // 安排！
+    if (handler.m_fiber)
+    {
+        handler.m_scheduler->schedule(std::move(handler.m_fiber));
+    }
+    else if (handler.m_callback)
+    {
+        handler.m_scheduler->schedule(std::move(handler.m_callback));
+    }
+    handler.m_scheduler = nullptr;
 }
 
 } // namespace zjl

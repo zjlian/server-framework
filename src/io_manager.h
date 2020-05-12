@@ -1,5 +1,5 @@
-#ifndef SERVER_FRAMEWORK_IOMANAGER_H
-#define SERVER_FRAMEWORK_IOMANAGER_H
+#ifndef SERVER_FRAMEWORK_IO_MANAGER_H
+#define SERVER_FRAMEWORK_IO_MANAGER_H
 
 #include "scheduler.h"
 #include "thread.h"
@@ -37,8 +37,8 @@ private: // 内部类
         EventHandler& getEventHandler(EventType type);
         // 清除指定的事件处理器
         void resetHandler(EventHandler& handler);
-        // 触发事件
-        void triggerEvent(EventHandler& handler);
+        // 触发事件，然后删除
+        void triggerEvent(EventType type);
 
         MutexType m_mutex;
         EventHandler m_read_handler;  // 处理读事件的
@@ -51,13 +51,13 @@ public: // 实例方法
     explicit IOManager(size_t thread_size, bool use_caller = true, std::string name = "");
     ~IOManager() override;
 
-    // 给指定的 fd 增加事件监听
+    // thread-safe 给指定的 fd 增加事件监听
     int addEventListener(int fd, EventType event, std::function<void()> callback);
-    // 给指定的 fd 移除指定的事件监听
+    // thread-safe 给指定的 fd 移除指定的事件监听
     bool removeEventListener(int fd, EventType event);
-    // 立即触发指定 fd 的指定的事件，然后移除该事件
+    // thread-safe 立即触发指定 fd 的指定的事件，然后移除该事件
     bool cancelEventListener(int fd, EventType event);
-    // 立即触发指定 fd 的所有事件，然后移除所有的事件
+    // thread-safe 立即触发指定 fd 的所有事件，然后移除所有的事件
     bool cancelAll(int fd);
 
 public: // 类方法
@@ -78,4 +78,4 @@ private: // 私有成员
 };
 } // namespace zjl
 
-#endif //SERVER_FRAMEWORK_IOMANAGER_H
+#endif //SERVER_FRAMEWORK_IO_MANAGER_H
