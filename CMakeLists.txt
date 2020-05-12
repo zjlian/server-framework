@@ -5,7 +5,7 @@ project(server_framework)
 # SET(CMAKE_CXX_COMPILER "/usr/bin/g++-9")
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O0 -ggdb -std=c++14 -Wall -Wno-deprecated -Werror -Wno-unused-function -Wno-unused-variable")
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 # 引入boost
 #set(Boost_USE_STATIC_LIBS ON)
@@ -32,7 +32,8 @@ add_library(${PROJECT_NAME} SHARED
         src/exception.cc src/exception.h
         src/fiber.cc src/fiber.h
         src/scheduler.cc src/scheduler.h
-        src/IOManager.cc src/IOManager.h)
+        src/io_manager.cc src/io_manager.h
+        )
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} yaml-cpp pthread)
 
 add_executable(test_log ${PROJECT_SOURCE_DIR}/tests/test_log.cc)
