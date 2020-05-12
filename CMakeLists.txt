@@ -4,7 +4,7 @@ project(server_framework)
 # SET(CMAKE_C_COMPILER "/usr/bin/gcc-9")
 # SET(CMAKE_CXX_COMPILER "/usr/bin/g++-9")
 set(CMAKE_VERBOSE_MAKEFILE ON)
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O0 -ggdb -std=c++14 -Wall -Wno-deprecated -Werror -Wno-unused-function -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O0 -ggdb -std=c++17 -Wall -Wno-deprecated -Werror -Wno-unused-function -Wno-unused-variable")
 set(CMAKE_CXX_STANDARD 17)
 
 # 引入boost
