@@ -1,6 +1,7 @@
 #include "src/fiber.h"
 #include <iostream>
 #include <memory>
+#include <cstdio>
 
 int fib = 0;
 
@@ -45,6 +46,5 @@ int main(int, char**)
 //        }
 //    }
 //    std::cout << "完成" << std::endl;
-
     return 0;
 }
