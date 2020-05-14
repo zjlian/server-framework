@@ -25,4 +25,16 @@ const char* Exception::stackTrace() const noexcept
 {
     return m_stack.c_str();
 }
+
+/**
+ * =======================================
+ * SystemError 的实现
+ * =======================================
+*/
+
+SystemError::SystemError(std::string what)
+    : Exception(what + " : " + std::string(::strerror(errno)))
+{
+}
+
 } // namespace zjl
