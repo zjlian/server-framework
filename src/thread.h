@@ -265,13 +265,6 @@ public:
     static void* Run(void* arg);
 
 private:
-    // 禁用 Thread 类的拷贝移动等操作
-    // Thread(const Thread&) = delete;
-    // Thread(const Thread&&) = delete;
-    // Thread& operator=(const Thread&) = delete;
-    // Thread& operator=(const Thread&&) = delete;
-
-private:
     // 系统线程 id, 通过 syscall() 获取
     pid_t m_id;
     // 线程名称
