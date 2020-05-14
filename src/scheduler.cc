@@ -135,9 +135,6 @@ void Scheduler::tickle()
     //    LOG_DEBUG(g_logger, "调用 Scheduler::tickle()");
 }
 
-/**
- * TODO @note Scheduler::run() 做了什么
- * */
 void Scheduler::run()
 {
     LOG_DEBUG(g_logger, "调用 Scheduler::run()");
