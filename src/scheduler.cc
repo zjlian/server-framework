@@ -203,7 +203,7 @@ void Scheduler::run()
             }
             --m_active_thread_count;
             // 协程换出后，继续将其添加到任务队列
-            auto fiber_status = task.fiber->getState();
+            Fiber::State fiber_status = task.fiber->getState();
             if (fiber_status == Fiber::READY)
             {
                 schedule(std::move(task.fiber), task.thread_id, true);

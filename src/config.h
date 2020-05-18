@@ -330,7 +330,7 @@ public:
             {
                 return;
             }
-            auto old_value = m_value;
+            T old_value = m_value;
             // 值被修改，调用所有的变更事件处理器
             for (const auto& pair : m_callback_map)
             {
@@ -437,7 +437,7 @@ public:
     Lookup(const std::string& name)
     {
         ReadScopedLock lock(&GetRWLock());
-        auto& s_data = GetData();
+        ConfigVarMap& s_data = GetData();
         auto iter = s_data.find(name);
         if (iter == s_data.end())
         {

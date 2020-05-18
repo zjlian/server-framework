@@ -220,7 +220,7 @@ void Fiber::SetThis(Fiber* fiber)
 
 void Fiber::YieldToReady()
 {
-    auto current_fiber = GetThis();
+    Fiber::ptr current_fiber = GetThis();
     current_fiber->m_state = READY;
     if (Scheduler::GetThis() && Scheduler::GetThis()->m_root_thread_id == GetThreadID())
     { // 调度器实例化时 use_caller 为 true, 并且当前协程所在的线程就是 root thread
