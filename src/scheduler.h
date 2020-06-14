@@ -80,6 +80,10 @@ public: // 实例方法
     void start();
     void stop();
     bool isStop();
+    bool hasIdleThread() const
+    {
+        return m_idle_thread_count > 0;
+    }
 
     /**
      * @brief 添加任务 thread-safe
@@ -105,17 +109,16 @@ public: // 实例方法
 protected:
     void run();
     virtual void tickle();
-    // 调度器停止时的回调函数
-    virtual bool onStop() { return false; }
+    // 调度器停止时的回调函数，返回调度器当前是否处于停止工作的状态
+    virtual bool onStop() { return isStop(); }
     // 调度器空闲时的回调函数
-    virtual bool onIdle()
+    virtual void onIdle()
     {
         while (!isStop())
         {
-            sleep(0);
             Fiber::YieldToHold();
         }
-        return false;
+        return;
     }
 
 private:
@@ -145,6 +148,7 @@ private:
     }
 
 protected:
+    const std::string m_name;
     // 主线程 id，仅在 use_caller 为 true 时会被设置有效线程 id
     long m_root_thread_id = 0;
     // 线程 id 列表
@@ -162,7 +166,6 @@ protected:
 
 private:
     mutable Mutex m_mutex;
-    const std::string m_name;
     // 负责调度的协程，仅在类实例化参数中 use_caller 为 true 时有效
     Fiber::ptr m_root_fiber;
     // 线程对象列表
