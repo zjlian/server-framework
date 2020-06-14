@@ -1,8 +1,10 @@
 #include "io_manager.h"
 #include "exception.h"
 #include "log.h"
+#include <array>
 #include <cstring>
 #include <fcntl.h>
+#include <memory>
 #include <string>
 #include <sys/epoll.h>
 #include <unistd.h>
@@ -27,8 +29,8 @@ IOManager* IOManager::GetThis()
     return dynamic_cast<IOManager*>(Scheduler::GetThis());
 }
 
-IOManager::IOManager(size_t thread_size, bool use_caller, std::string name)
-    : Scheduler(thread_size, use_caller, std::move(name))
+IOManager::IOManager(size_t thread_size, std::string name)
+    : Scheduler(thread_size, false, std::move(name))
 {
     // 创建 epoll
     m_epoll_fd = ::epoll_create(0xffff);
@@ -71,10 +73,10 @@ IOManager::~IOManager()
     close(m_tickle_fds[0]);
     close(m_tickle_fds[1]);
     // 释放 m_fd_context_list 的指针
-    for (auto item : m_fd_context_list)
-    {
-        delete item;
-    }
+    //    for (auto item : m_fd_context_list)
+    //    {
+    //        delete item;
+    //    }
 }
 
 void IOManager::contextListResize(size_t size)
@@ -84,27 +86,27 @@ void IOManager::contextListResize(size_t size)
     {
         if (!m_fd_context_list[i])
         {
-            m_fd_context_list[i] = new FDContext;
+            m_fd_context_list[i] = std::make_unique<FDContext>();
             m_fd_context_list[i]->m_fd = i;
         }
     }
 }
 
-int IOManager::addEventListener(int fd, IOManager::EventType event, std::function<void()> callback)
+int IOManager::addEventListener(int fd, FDEventType event, std::function<void()> callback)
 {
     /**
      * NOTE:
      *  主要工作流程: 首先从 fd 对象池中取出对应的对象指针，如果不存在就扩容对象池，
-     *  第二步检查 fd 对象是否存在相同的事件，存在的话就抛出异常，
-     *  第三步创建 epoll 事件对象，并注册事件
-     *  最后一步是更新 fd 对象的事件处理器
+     *  第二步检查 fd 对象是否存在相同的事件，
+     *  第三步创建 epoll 事件对象，并注册事件,
+     *  最后更新 fd 对象的事件处理器
      * */
     FDContext* fd_ctx = nullptr;
     ReadScopedLock lock(&m_lock);
     // 从 m_fd_context_list 中拿对象
     if (static_cast<int>(m_fd_context_list.size()) > fd)
     {
-        fd_ctx = m_fd_context_list[fd];
+        fd_ctx = m_fd_context_list[fd].get();
         lock.unlock();
     }
     else
@@ -112,7 +114,7 @@ int IOManager::addEventListener(int fd, IOManager::EventType event, std::functio
         lock.unlock();
         WriteScopedLock lock2(&m_lock);
         contextListResize(m_fd_context_list.size() * 2);
-        fd_ctx = m_fd_context_list[fd];
+        fd_ctx = m_fd_context_list[fd].get();
     }
     ScopedLock lock3(&fd_ctx->m_mutex);
     // 检查要监听的事件是否已经存在
@@ -129,10 +131,14 @@ int IOManager::addEventListener(int fd, IOManager::EventType event, std::functio
      * 使用 EPOLL_CTL_ADD 注册新事件，
      * 否则，使用 EPOLL_CTL_MOD，更改 fd 监听的事件
      **/
-    int op = fd_ctx->m_events == EventType::NONE ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
+    int op = fd_ctx->m_events == FDEventType::NONE ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
     // 创建事件
     epoll_event epevent{};
     epevent.events = EPOLLET | fd_ctx->m_events | event;
+    /**
+     * FIXME: 感觉这是个不太好的做法。 fd_ctx 指向的对象由 unique_ptr 管理，
+     *        这相当于交出了所有权，但暂时想不出解决办法。
+     * */
     epevent.data.ptr = fd_ctx;
     // 给 fd 注册事件监听
     if (::epoll_ctl(m_epoll_fd, op, fd, &epevent) == -1)
@@ -144,7 +150,7 @@ int IOManager::addEventListener(int fd, IOManager::EventType event, std::functio
         THROW_EXCEPTION_WHIT_ERRNO;
     }
     ++m_pending_event_count;
-    fd_ctx->m_events = static_cast<EventType>(fd_ctx->m_events | event);
+    fd_ctx->m_events = static_cast<FDEventType>(fd_ctx->m_events | event);
     FDContext::EventHandler& event_handler = fd_ctx->getEventHandler(event);
     // 确保没有给这个 fd 没有重复添加事件监听
     assert(event_handler.m_scheduler == nullptr &&
@@ -162,7 +168,7 @@ int IOManager::addEventListener(int fd, IOManager::EventType event, std::functio
     return 0;
 }
 
-bool IOManager::removeEventListener(int fd, IOManager::EventType event)
+bool IOManager::removeEventListener(int fd, FDEventType event)
 {
     FDContext* fd_ctx = nullptr;
     { // 上读锁
@@ -172,7 +178,7 @@ bool IOManager::removeEventListener(int fd, IOManager::EventType event)
             return false;
         }
         // 从 m_fd_context_list 中拿对象
-        fd_ctx = m_fd_context_list[fd];
+        fd_ctx = m_fd_context_list[fd].get();
     }
     ScopedLock lock2(&(fd_ctx->m_mutex));
     if (!(fd_ctx->m_events & event))
@@ -180,9 +186,9 @@ bool IOManager::removeEventListener(int fd, IOManager::EventType event)
         return false;
     }
     // 从 epoll 上移除该事件的监听
-    auto new_event = static_cast<EventType>(fd_ctx->m_events & ~event);
+    auto new_event = static_cast<FDEventType>(fd_ctx->m_events & ~event);
     // 如果 new_event 为 0, 从 epoll 中移除对该 fd 的监听，否则仅修改监听事件
-    int op = new_event == EventType::NONE ? EPOLL_CTL_DEL : EPOLL_CTL_MOD;
+    int op = new_event == FDEventType::NONE ? EPOLL_CTL_DEL : EPOLL_CTL_MOD;
     epoll_event epevent{};
     epevent.events = EPOLLET | new_event;
     epevent.data.ptr = fd_ctx;
@@ -201,7 +207,7 @@ bool IOManager::removeEventListener(int fd, IOManager::EventType event)
     return true;
 }
 
-bool IOManager::cancelEventListener(int fd, IOManager::EventType event)
+bool IOManager::cancelEventListener(int fd, FDEventType event)
 {
     FDContext* fd_ctx = nullptr;
     { // 上读锁
@@ -211,7 +217,7 @@ bool IOManager::cancelEventListener(int fd, IOManager::EventType event)
             return false;
         }
         // 从 m_fd_context_list 中拿对象
-        fd_ctx = m_fd_context_list[fd];
+        fd_ctx = m_fd_context_list[fd].get();
     }
     ScopedLock lock2(&(fd_ctx->m_mutex));
     if (!(fd_ctx->m_events & event))
@@ -219,9 +225,9 @@ bool IOManager::cancelEventListener(int fd, IOManager::EventType event)
         return false;
     }
     // 从 epoll 上移除该事件的监听
-    auto new_event = static_cast<EventType>(fd_ctx->m_events & ~event);
+    auto new_event = static_cast<FDEventType>(fd_ctx->m_events & ~event);
     // 如果 new_event 为 0, 从 epoll 中移除对该 fd 的监听，否则仅修改监听事件
-    int op = new_event == EventType::NONE ? EPOLL_CTL_DEL : EPOLL_CTL_MOD;
+    int op = new_event == FDEventType::NONE ? EPOLL_CTL_DEL : EPOLL_CTL_MOD;
     epoll_event epevent{};
     epevent.events = EPOLLET | new_event;
     epevent.data.ptr = fd_ctx;
@@ -235,7 +241,6 @@ bool IOManager::cancelEventListener(int fd, IOManager::EventType event)
     }
     fd_ctx->m_events = new_event;
     fd_ctx->triggerEvent(event);
-    // TODO 是否需要清除对应的处理器？
     --m_pending_event_count;
     return true;
 }
@@ -250,7 +255,7 @@ bool IOManager::cancelAll(int fd)
             return false;
         }
         // 从 m_fd_context_list 中拿对象
-        fd_ctx = m_fd_context_list[fd];
+        fd_ctx = m_fd_context_list[fd].get();
     }
     ScopedLock lock2(&(fd_ctx->m_mutex));
     if (!(fd_ctx->m_events))
@@ -267,34 +272,136 @@ bool IOManager::cancelAll(int fd)
             m_epoll_fd);
         THROW_EXCEPTION_WHIT_ERRNO;
     }
-    if (fd_ctx->m_events & EventType::READ)
+    if (fd_ctx->m_events & FDEventType::READ)
     {
-        fd_ctx->triggerEvent(EventType::READ);
+        fd_ctx->triggerEvent(FDEventType::READ);
         --m_pending_event_count;
     }
-    if (fd_ctx->m_events & EventType::WRITE)
+    if (fd_ctx->m_events & FDEventType::WRITE)
     {
-        fd_ctx->triggerEvent(EventType::WRITE);
+        fd_ctx->triggerEvent(FDEventType::WRITE);
         --m_pending_event_count;
     }
-    // TODO 移除对应的事件处理器？
-    fd_ctx->m_events = EventType::NONE;
+    fd_ctx->m_events = FDEventType::NONE;
     return true;
 }
 
 void zjl::IOManager::tickle()
 {
-    Scheduler::tickle();
+    if (hasIdleThread())
+    {
+        return;
+    }
+    if (write(m_tickle_fds[1], "T", 1) == -1)
+    {
+        throw zjl::SystemError("write(m_tickle_fds[1]) 失败");
+    }
 }
 
 bool zjl::IOManager::onStop()
 {
-    return Scheduler::onStop();
+    return Scheduler::onStop() && m_pending_event_count == 0;
 }
 
-bool zjl::IOManager::onIdle()
+void zjl::IOManager::onIdle()
 {
-    return Scheduler::onIdle();
+    auto event_list = std::make_unique<epoll_event[]>(64);
+    // std::array<epoll_event, 64> event_list;
+    while (true)
+    {
+        if (isStop())
+        {
+            LOG_FMT_INFO(system_logger, "I/O 调度器 %s 已停止执行", m_name.c_str());
+            break;
+        }
+        int result = 0;
+        while (true)
+        {
+            /**
+             * 阻塞等待 epoll 返回结果
+             * */
+            static const int MAX_TIMEOUT = 5000;
+            result = ::epoll_wait(m_epoll_fd, event_list.get(), 64, MAX_TIMEOUT);
+            if (result < 0 && errno == EINTR)
+            {
+                // TODO 处理 epoll 等待超时
+            }
+            if (result > 0)
+            {
+                break;
+            }
+        }
+        // 遍历 event_list 处理被触发事件的 fd
+        for (int i = 0; i < result; i++)
+        {
+            epoll_event& ev = event_list[i];
+            // 接收到来自主线程的消息
+            if (ev.data.fd == m_tickle_fds[0])
+            {
+                char dummy;
+                // 将来自主线程的数据读取干净
+                while (true)
+                {
+                    int status = read(ev.data.fd, &dummy, 1);
+                    if (status == 0 || status == -1)
+                        break;
+                }
+                continue;
+            }
+            // 处理非主线程的消息
+            auto fd_ctx = static_cast<FDContext*>(ev.data.ptr);
+            ScopedLock lock(&fd_ctx->m_mutex);
+            // 该事件的 fd 出现错误或者已经失效
+            if (ev.events & (EPOLLERR | EPOLLHUP))
+            {
+                ev.events |= EPOLLIN | EPOLLOUT;
+            }
+            uint32_t real_events = FDEventType::NONE;
+            if (ev.events & EPOLLIN)
+            {
+                real_events |= FDEventType::READ;
+            }
+            if (ev.events & EPOLLOUT)
+            {
+                real_events |= FDEventType::WRITE;
+            }
+            // fd_ctx 中指定监听的事件都已经被触发并处理
+            if ((fd_ctx->m_events & real_events) == FDEventType::NONE)
+            {
+                continue;
+            }
+            // 从 epoll 中移除这个 fd 的被触发的事件的监听
+            uint32_t left_events = (fd_ctx->m_events & ~real_events);
+            int op = left_events == 0 ? EPOLL_CTL_DEL : EPOLL_CTL_MOD;
+            ev.events = EPOLLET | left_events;
+            int rt = ::epoll_ctl(m_epoll_fd, op, fd_ctx->m_fd, &ev);
+            // epoll 事件修改失败，打印一条 ERROR 日志，不做任何处理
+            if (rt == -1)
+            {
+                LOG_FMT_ERROR(
+                    system_logger,
+                    "epoll_ctl(%d, %d, %d, %ul) : return %d, errno = %d, %s",
+                    m_epoll_fd, op, fd_ctx->m_fd, ev.events, rt, errno, strerror(errno));
+            }
+            // 触发该 fd 对应的事件的处理器
+            if (real_events & FDEventType::READ)
+            {
+                fd_ctx->triggerEvent(FDEventType::READ);
+                --m_pending_event_count;
+            }
+            if (real_events & FDEventType::WRITE)
+            {
+                fd_ctx->triggerEvent(FDEventType::WRITE);
+                --m_pending_event_count;
+            }
+        }
+        // 让出当前线程的执行权，给调度器执行排队等待的协程
+        Fiber::ptr cur_fiber = Fiber::GetThis();
+        // Fiber::GetThis() 获取的是一个 shared_ptr 对象，会增加一个引用计数，这里直接把他 reset 掉
+        auto raw_ptr = cur_fiber.get();
+        cur_fiber.reset();
+        raw_ptr->swapOut();
+    }
 }
 
 /**
@@ -303,31 +410,35 @@ bool zjl::IOManager::onIdle()
  * ===================================================
 */
 
-IOManager::FDContext::EventHandler&
-IOManager::FDContext::getEventHandler(IOManager::EventType type)
+FDContext::EventHandler&
+FDContext::getEventHandler(FDEventType type)
 {
     switch (type)
     {
-        case EventType::READ:
+        case FDEventType::READ:
             return m_read_handler;
-        case EventType::WRITE:
+        case FDEventType::WRITE:
             return m_write_handler;
         default:
             assert(0);
     }
 }
 
-void IOManager::FDContext::resetHandler(IOManager::FDContext::EventHandler& handler)
+void FDContext::resetHandler(FDContext::EventHandler& handler)
 {
     handler.m_fiber.reset();
     handler.m_callback = nullptr;
     handler.m_scheduler = nullptr;
 }
 
-void IOManager::FDContext::triggerEvent(EventType type)
+void FDContext::triggerEvent(FDEventType type)
 {
+    /**
+     * NOTE: 调用调度器的 schedule 方法时，传参使用了 move 语义，等于说调用了本 triggerEvent 方法后，
+     *      会把处理对应事件的协程或函数对象的引用从本 FDContext 对象中移除。
+     * */
     assert(m_events & type);
-    m_events = static_cast<EventType>(m_events & ~type);
+    m_events = static_cast<FDEventType>(m_events & ~type);
     auto& handler = getEventHandler(type);
     assert(handler.m_scheduler);
     // 安排！
