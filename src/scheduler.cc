@@ -234,7 +234,7 @@ void Scheduler::run()
             --m_idle_thread_count;
         }
     }
-    LOG_DEBUG(g_logger, "run() 结束");
+    LOG_DEBUG(g_logger, "Scheduler::run() 结束");
 }
 
 } // namespace zjl

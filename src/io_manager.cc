@@ -311,7 +311,7 @@ void zjl::IOManager::onIdle()
     {
         if (isStop())
         {
-            LOG_FMT_INFO(system_logger, "I/O 调度器 %s 已停止执行", m_name.c_str());
+            LOG_FMT_DEBUG(system_logger, "I/O 调度器 %s 已停止执行", m_name.c_str());
             break;
         }
         int result = 0;
