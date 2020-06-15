@@ -161,13 +161,13 @@ public:
     std::string operator()(const std::vector<LogConfig>& source)
     {
         YAML::Node node;
-        for (const auto log_config : source)
+        for (const auto &log_config : source)
         {
             node["name"] = log_config.name;
             node["level"] = (int)(log_config.level);
             node["formatter"] = log_config.formatter;
             YAML::Node app_list_node;
-            for (const auto app_config : log_config.appender)
+            for (const auto &app_config : log_config.appender)
             {
                 YAML::Node app_node;
                 app_node["type"] = (int)(app_config.type);
