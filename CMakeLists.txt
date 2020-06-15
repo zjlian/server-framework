@@ -60,5 +60,9 @@ add_executable(test_scheduler ${PROJECT_SOURCE_DIR}/tests/test_scheduler.cc)
 add_dependencies(test_scheduler ${PROJECT_NAME})
 target_link_libraries(test_scheduler ${PROJECT_NAME})
 
+add_executable(test_io_manager ${PROJECT_SOURCE_DIR}/tests/test_io_manager.cc)
+add_dependencies(test_io_manager ${PROJECT_NAME})
+target_link_libraries(test_io_manager ${PROJECT_NAME})
+
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
