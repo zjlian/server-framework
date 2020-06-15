@@ -104,7 +104,7 @@ int IOManager::addEventListener(int fd, FDEventType event, std::function<void()>
     FDContext* fd_ctx = nullptr;
     ReadScopedLock lock(&m_lock);
     // 从 m_fd_context_list 中拿对象
-    if (static_cast<int>(m_fd_context_list.size()) > fd)
+    if (m_fd_context_list.size() > static_cast<size_t>(fd))
     {
         fd_ctx = m_fd_context_list[fd].get();
         lock.unlock();
@@ -173,7 +173,7 @@ bool IOManager::removeEventListener(int fd, FDEventType event)
     FDContext* fd_ctx = nullptr;
     { // 上读锁
         ReadScopedLock lock(&m_lock);
-        if (static_cast<int>(m_fd_context_list.size()) <= fd)
+        if (m_fd_context_list.size() <= static_cast<size_t>(fd))
         {
             return false;
         }
@@ -212,7 +212,7 @@ bool IOManager::cancelEventListener(int fd, FDEventType event)
     FDContext* fd_ctx = nullptr;
     { // 上读锁
         ReadScopedLock lock(&m_lock);
-        if (static_cast<int>(m_fd_context_list.size()) <= fd)
+        if (m_fd_context_list.size() <= static_cast<size_t>(fd))
         {
             return false;
         }
@@ -250,7 +250,7 @@ bool IOManager::cancelAll(int fd)
     FDContext* fd_ctx = nullptr;
     { // 上读锁
         ReadScopedLock lock(&m_lock);
-        if (static_cast<int>(m_fd_context_list.size()) <= fd)
+        if (m_fd_context_list.size() <= static_cast<size_t>(fd))
         {
             return false;
         }
