@@ -294,7 +294,7 @@ void zjl::IOManager::tickle()
     }
     if (write(m_tickle_fds[1], "T", 1) == -1)
     {
-        throw zjl::SystemError("write(m_tickle_fds[1]) 失败");
+        throw zjl::SystemError("向子线程发送消息失败");
     }
 }
 
