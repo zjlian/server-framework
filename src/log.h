@@ -269,7 +269,7 @@ public:
     // thread-safe 获取格式化器
     LogFormatter::ptr getFormatter();
     // thread-safe 设置格式化器
-    void setFormatter(const LogFormatter::ptr formatter);
+    void setFormatter(LogFormatter::ptr formatter);
 
 protected:
     LogLevel::Level m_level;       // 输出器的日志等级
