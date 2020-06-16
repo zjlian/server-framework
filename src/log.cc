@@ -8,6 +8,7 @@
 #include <iostream>
 #include <map>
 #include <sstream>
+#include <utility>
 
 namespace zjl
 {
@@ -276,11 +277,10 @@ LogFormatter::ptr LogAppender::getFormatter()
     return m_formatter;
 }
 
-void LogAppender::setFormatter(const LogFormatter::ptr formatter)
+void LogAppender::setFormatter(LogFormatter::ptr formatter)
 {
     ScopedLock lock(&m_mutex);
-    // TODO move(formatter) 有必要吗?
-    m_formatter = formatter;
+    m_formatter = std::move(formatter);
 }
 
 StdoutLogAppender::StdoutLogAppender(LogLevel::Level level)
