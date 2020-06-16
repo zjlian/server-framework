@@ -407,6 +407,7 @@ __LoggerManager::__LoggerManager()
 
 void __LoggerManager::ensureGlobalLoggerExists()
 {
+    // std::map 不能够用 operator[] 来查询键是否存在，因为该操作符会获取不存在的键时会创建新节点
     auto iter = m_logger_map.find("global");
     if (iter == m_logger_map.end())
     { // 日志器 map 里不存在全局日志器
