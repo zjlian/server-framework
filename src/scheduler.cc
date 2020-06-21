@@ -4,7 +4,7 @@
 namespace zjl
 {
 
-static Logger::ptr g_logger = GET_LOGGER("system");
+static Logger::ptr system_logger = GET_LOGGER("system");
 // 当前线程的协程调度器
 static thread_local Scheduler* t_scheduler = nullptr;
 // 协程调度器的调度工作协程
@@ -50,7 +50,7 @@ Scheduler::Scheduler(size_t thread_size, bool use_caller, std::string name)
 
 Scheduler::~Scheduler()
 {
-    LOG_DEBUG(g_logger, "调用 Scheduler::~Scheduler()");
+    LOG_DEBUG(system_logger, "调用 Scheduler::~Scheduler()");
     assert(m_auto_stop);
     if (GetThis() == this)
     {
@@ -60,7 +60,7 @@ Scheduler::~Scheduler()
 
 void Scheduler::start()
 {
-    LOG_DEBUG(g_logger, "调用 Scheduler::start()");
+    LOG_DEBUG(system_logger, "调用 Scheduler::start()");
     { // !!! 作用域锁
         ScopedLock lock(&m_mutex);
         if (!m_stopping)
@@ -81,13 +81,14 @@ void Scheduler::start()
     // m_root_fiber 存在就将它换入
     if (m_root_fiber)
     {
+        LOG_DEBUG(system_logger, "开始换入 m_root_fiber，绑定的函数是 Scheduler::run()");
         m_root_fiber->swapIn();
     }
 }
 
 void Scheduler::stop()
 {
-    LOG_DEBUG(g_logger, "调用 Scheduler::stop()");
+    LOG_DEBUG(system_logger, "调用 Scheduler::stop()");
     m_auto_stop = true;
     // 实例化调度器时的参数 use_caller 为 true, 并且指定线程数量为 1 时
     // 说明只有当前一条主线程在执行，简单等待执行结束即可
@@ -132,12 +133,12 @@ bool Scheduler::isStop()
 
 void Scheduler::tickle()
 {
-    //    LOG_DEBUG(g_logger, "调用 Scheduler::tickle()");
+    //    LOG_DEBUG(system_logger, "调用 Scheduler::tickle()");
 }
 
 void Scheduler::run()
 {
-    LOG_DEBUG(g_logger, "调用 Scheduler::run()");
+    LOG_DEBUG(system_logger, "调用 Scheduler::run()");
     t_scheduler = this;
     // 判断执行 run() 函数的线程，是否是线程池中的线程
     if (GetThreadID() != m_root_thread_id)
@@ -234,7 +235,7 @@ void Scheduler::run()
             --m_idle_thread_count;
         }
     }
-    LOG_DEBUG(g_logger, "Scheduler::run() 结束");
+    LOG_DEBUG(system_logger, "Scheduler::run() 结束");
 }
 
 } // namespace zjl
