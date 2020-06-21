@@ -335,9 +335,9 @@ void IOManager::onIdle()
 //            perror("epoll_wait");
             if (result < 0 /*&& errno == EINTR*/)
             {
-                // TODO 处理 epoll 等待超时
+                // TODO 坑
             }
-            if (result > 0)
+            if (result >= 0)
             {
                 break;
             }
