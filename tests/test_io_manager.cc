@@ -23,7 +23,7 @@ void TEST_CreateIOManager()
 {
     char buffer[1024];
     const char msg[] =  "懂的都懂";
-    zjl::IOManager iom(3);
+    zjl::IOManager iom(2);
     iom.schedule(test_fiber);
     int sockfd;
     sockaddr_in server_addr{};
@@ -49,6 +49,8 @@ void TEST_CreateIOManager()
         iom.addEventListener(sockfd, zjl::FDEventType::READ, [&]() {
             recv(sockfd, buffer, sizeof(buffer), 0);
             LOG_FMT_INFO(g_logger, "服务端回应: %s", buffer);
+            iom.cancelAll(sockfd);
+            close(sockfd);
         });
         iom.addEventListener(sockfd, zjl::FDEventType::WRITE, [&]() {
           memcpy(buffer, msg, sizeof(buffer));
