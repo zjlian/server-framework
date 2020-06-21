@@ -14,7 +14,7 @@ enum FDEventType
 {
     NONE = 0x0,
     READ = 0x1,
-    WRITE = 0x2
+    WRITE = 0x4
 };
 
 // 记录与 fd 相关的信息
@@ -48,7 +48,7 @@ public: // 内部类型
     using LockType = zjl::RWLock;
 
 public: // 实例方法
-    explicit IOManager(size_t thread_size, std::string name = "");
+    explicit IOManager(size_t thread_size, bool use_caller = false, std::string name = "");
     ~IOManager() override;
 
     // thread-safe 给指定的 fd 增加事件监听
@@ -65,8 +65,9 @@ public: // 类方法
 
 protected:
     void tickle() override;
-    bool onStop() override;
+//    bool onStop() override;
     void onIdle() override;
+    bool isStop() override;
     void contextListResize(size_t size);
 
 private: // 私有成员
