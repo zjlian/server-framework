@@ -29,9 +29,10 @@ IOManager* IOManager::GetThis()
     return dynamic_cast<IOManager*>(Scheduler::GetThis());
 }
 
-IOManager::IOManager(size_t thread_size, std::string name)
-    : Scheduler(thread_size, false, std::move(name))
+IOManager::IOManager(size_t thread_size, bool use_caller, std::string name)
+    : Scheduler(thread_size, use_caller, std::move(name))
 {
+    LOG_DEBUG(system_logger, "调用 IOManager::IOManager()");
     // 创建 epoll
     m_epoll_fd = ::epoll_create(0xffff);
     if (m_epoll_fd == -1)
@@ -64,10 +65,7 @@ IOManager::IOManager(size_t thread_size, std::string name)
 
 IOManager::~IOManager()
 {
-    if (!isStop())
-    {
-        stop();
-    }
+    stop();
     // 关闭打开的文件标识符
     close(m_epoll_fd);
     close(m_tickle_fds[0]);
@@ -149,6 +147,10 @@ int IOManager::addEventListener(int fd, FDEventType event, std::function<void()>
             m_epoll_fd);
         THROW_EXCEPTION_WHIT_ERRNO;
     }
+//    LOG_FMT_DEBUG(system_logger, "epoll_ctl %s 注册事件 %ul : %s",
+//                  op == 1 ? "新增" : "修改",
+//                  epevent.events,
+//                  strerror(errno));
     ++m_pending_event_count;
     fd_ctx->m_events = static_cast<FDEventType>(fd_ctx->m_events | event);
     FDContext::EventHandler& event_handler = fd_ctx->getEventHandler(event);
@@ -156,7 +158,9 @@ int IOManager::addEventListener(int fd, FDEventType event, std::function<void()>
     assert(event_handler.m_scheduler == nullptr &&
            !event_handler.m_fiber &&
            !event_handler.m_callback);
-    event_handler.m_scheduler = Scheduler::GetThis();
+//    event_handler.m_scheduler = Scheduler::GetThis();
+    event_handler.m_scheduler = this;
+//    LOG_FMT_ERROR(system_logger, "调度器地址: %p", Scheduler::GetThis());
     if (callback)
     {
         event_handler.m_callback.swap(callback);
@@ -286,7 +290,7 @@ bool IOManager::cancelAll(int fd)
     return true;
 }
 
-void zjl::IOManager::tickle()
+void IOManager::tickle()
 {
     if (hasIdleThread())
     {
@@ -298,13 +302,19 @@ void zjl::IOManager::tickle()
     }
 }
 
-bool zjl::IOManager::onStop()
+bool IOManager::isStop()
 {
-    return Scheduler::onStop() && m_pending_event_count == 0;
+    return Scheduler::isStop() && m_pending_event_count == 0;
 }
 
-void zjl::IOManager::onIdle()
+//bool zjl::IOManager::onStop()
+//{
+//    return Scheduler::onStop() && m_pending_event_count == 0;
+//}
+
+void IOManager::onIdle()
 {
+    LOG_DEBUG(system_logger, "调用 IOManager::onIdle()");
     auto event_list = std::make_unique<epoll_event[]>(64);
     // std::array<epoll_event, 64> event_list;
     while (true)
@@ -322,7 +332,8 @@ void zjl::IOManager::onIdle()
              * */
             static const int MAX_TIMEOUT = 5000;
             result = ::epoll_wait(m_epoll_fd, event_list.get(), 64, MAX_TIMEOUT);
-            if (result < 0 && errno == EINTR)
+//            perror("epoll_wait");
+            if (result < 0 /*&& errno == EINTR*/)
             {
                 // TODO 处理 epoll 等待超时
             }
@@ -396,13 +407,10 @@ void zjl::IOManager::onIdle()
             }
         }
         // 让出当前线程的执行权，给调度器执行排队等待的协程
-        Fiber::ptr cur_fiber = Fiber::GetThis();
-        // Fiber::GetThis() 获取的是一个 shared_ptr 对象，会增加一个引用计数，这里直接把他 reset 掉
-        auto raw_ptr = cur_fiber.get();
-        cur_fiber.reset();
-        raw_ptr->swapOut();
+        Fiber::YieldToHold();
     }
 }
+
 
 /**
  * ===================================================
