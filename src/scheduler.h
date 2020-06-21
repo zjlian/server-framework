@@ -79,7 +79,7 @@ public: // 实例方法
 
     void start();
     void stop();
-    bool isStop();
+    virtual bool isStop();
     bool hasIdleThread() const
     {
         return m_idle_thread_count > 0;
