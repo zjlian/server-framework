@@ -88,7 +88,7 @@ Fiber::Fiber(FiberFunc callback, size_t stack_size)
     makecontext(&m_ctx, &Fiber::MainFunc, 0);
 
     ++FiberInfo::s_fiber_count;
-//    LOG_FMT_DEBUG(g_logger,
+//    LOG_FMT_DEBUG(system_logger,
 //                  "调用 Fiber::~Fiber 创建协程，thread_id = %ld, fiber_id = %ld",
 //                  GetThreadID(), m_id);
 }
@@ -107,7 +107,7 @@ Fiber::Fiber(FiberFunc callback, size_t stack_size)
 
 Fiber::~Fiber()
 {
-//    LOG_FMT_DEBUG(g_logger,
+//    LOG_FMT_DEBUG(system_logger,
 //                  "调用 Fiber::~Fiber 析构协程，thread_id = %ld, fiber_id = %ld",
 //                  GetThreadID(), m_id);
     if (m_stack) // 存在栈，说明是子协程，释放申请的协程栈空间
@@ -148,7 +148,7 @@ void Fiber::swapIn()
 {
     //    assert(Scheduler::GetThis()->m_root_thread_id == -1 ||
     //           Scheduler::GetThis()->m_root_thread_id != GetThreadID());
-    // 只有线程是等待执行的状态才能被换入
+    // 只有协程是等待执行的状态才能被换入
     assert(m_state == INIT || m_state == READY || m_state == HOLD);
     SetThis(this);
     m_state = EXEC;
@@ -200,7 +200,7 @@ bool Fiber::finish() const noexcept
 
 Fiber::ptr Fiber::GetThis()
 {
-    //    LOG_FMT_DEBUG(g_logger, "GetThis() fiber id = %ld, callstack: \n%s\n",
+    //    LOG_FMT_DEBUG(system_logger, "GetThis() fiber id = %ld, callstack: \n%s\n",
     //                  GetFiberID(), BacktraceToString().c_str());
     if (FiberInfo::t_fiber != nullptr)
     {
@@ -220,6 +220,7 @@ void Fiber::SetThis(Fiber* fiber)
 
 void Fiber::YieldToReady()
 {
+    /* FIXME: 可能会造成  shared_ptr 的引用计数只增不减 */
     Fiber::ptr current_fiber = GetThis();
     current_fiber->m_state = READY;
     if (Scheduler::GetThis() && Scheduler::GetThis()->m_root_thread_id == GetThreadID())
@@ -234,6 +235,7 @@ void Fiber::YieldToReady()
 
 void Fiber::YieldToHold()
 {
+    /* FIXME: 可能会造成 shared_ptr 的引用计数只增不减 */
     auto current_fiber = GetThis();
     current_fiber->m_state = HOLD;
     if (Scheduler::GetThis() && Scheduler::GetThis()->m_root_thread_id == GetThreadID())
