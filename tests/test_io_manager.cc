@@ -34,7 +34,7 @@ void TEST_CreateIOManager()
     }
     bzero(&server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(8888);
+    server_addr.sin_port = htons(8800);
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     if (connect(sockfd, (struct sockaddr*)(&server_addr), sizeof(struct sockaddr)) == -1)
     {
@@ -43,7 +43,6 @@ void TEST_CreateIOManager()
     }
     else
     {
-
         fcntl(sockfd, F_SETFL, O_NONBLOCK);
         LOG_INFO(g_logger, "开始了开始了");
         iom.addEventListener(sockfd, zjl::FDEventType::READ, [&]() {
