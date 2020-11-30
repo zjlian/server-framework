@@ -33,6 +33,7 @@ add_library(${PROJECT_NAME} SHARED
         src/fiber.cc src/fiber.h
         src/scheduler.cc src/scheduler.h
         src/io_manager.cc src/io_manager.h
+        src/timer.cc src/timer.h
         )
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} yaml-cpp pthread)
 
@@ -63,6 +64,10 @@ target_link_libraries(test_scheduler ${PROJECT_NAME})
 add_executable(test_io_manager ${PROJECT_SOURCE_DIR}/tests/test_io_manager.cc)
 add_dependencies(test_io_manager ${PROJECT_NAME})
 target_link_libraries(test_io_manager ${PROJECT_NAME})
+
+add_executable(test_util ${PROJECT_SOURCE_DIR}/tests/test_util.cc)
+add_dependencies(test_util ${PROJECT_NAME})
+target_link_libraries(test_util ${PROJECT_NAME})
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
