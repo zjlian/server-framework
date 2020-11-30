@@ -65,6 +65,7 @@ IOManager::IOManager(size_t thread_size, bool use_caller, std::string name)
 
 IOManager::~IOManager()
 {
+    // FIXME: 调用了虚函数
     stop();
     // 关闭打开的文件标识符
     close(m_epoll_fd);

@@ -41,7 +41,7 @@ struct FDContext
     FDEventType m_events = FDEventType::NONE;
 };
 
-class IOManager : public Scheduler
+class IOManager final : public Scheduler
 {
 public: // 内部类型
     using ptr = std::shared_ptr<IOManager>;
