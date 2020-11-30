@@ -3,7 +3,7 @@
 #include <execinfo.h>
 #include <iostream>
 #include <cxxabi.h>
-
+#include <sys/time.h>
 
 namespace zjl
 {
@@ -73,6 +73,7 @@ void Backtrace(std::vector<std::string>& out, int size, int skip)
     free(string_list);
     free(void_ptr_list);
 }
+
 std::string BacktraceToString(int size, int skip)
 {
     std::vector<std::string> call_stack;
@@ -83,6 +84,20 @@ std::string BacktraceToString(int size, int skip)
         ss << item << std::endl;
     }
     return ss.str();
+}
+
+uint64_t GetCurrentMS()
+{
+    timeval tv;
+    gettimeofday(&tv, nullptr);
+    return tv.tv_sec * 1000ul + tv.tv_usec / 1000;
+}
+
+uint64_t GetCurrentUS()
+{
+    timeval tv;
+    gettimeofday(&tv, nullptr);
+    return tv.tv_sec * 1000ul * 1000ul + tv.tv_usec;
 }
 
 } // namespace zjl

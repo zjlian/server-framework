@@ -36,5 +36,15 @@ void Backtrace(std::vector<std::string>& out, int size = 200, int skip = 1);
 */
 std::string BacktraceToString(int size = 200, int skip = 2);
 
+/**
+ * @brief 获取ms时间
+*/
+uint64_t GetCurrentMS();
+
+/**
+ * @brief 获取us时间
+*/
+uint64_t GetCurrentUS();
+
 } // namespace zjl
 #endif
