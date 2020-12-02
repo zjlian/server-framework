@@ -2,6 +2,7 @@
 #define SERVER_FRAMEWORK_TIMER_H
 
 #include <set>
+#include <vector>
 #include <memory>
 #include "thread.h"
 
@@ -30,6 +31,29 @@ private:
     */
     Timer(uint64_t ms, std::function<void()> fn, 
         bool cyclic, TimerManager* manager);
+
+    /**
+     * @brief 用于创建只有时间信息的定时器，基本是用于查找超时的定时器，无其他作用
+    */
+    Timer(uint64_t next);
+
+    /**
+     * @brief 取消定时器
+    */
+    bool cancel();
+
+    /**
+     * @brief 重设定时间隔
+     * @param ms 延迟
+     * @param from_now 是否立即开始倒计时
+    */
+    bool reset(uint64_t ms, bool from_now);
+
+    /**
+     * @brief 重新计时
+    */
+    bool refresh();
+    
 
 private:
     bool m_cyclic = false;  // 是否重复
@@ -74,6 +98,16 @@ public:
     */
     Timer::ptr addConditionTimer(uint64_t ms, std::function<void()> fn,
         std::weak_ptr<void> weak_cond, bool cyclic = false);
+
+    /**
+     * @brief 获取下一个定时器的等待时间
+    */
+    uint64_t getNextTimer();
+
+    /**
+     * @brief 获取所有等待超时的定时器的回调函数对象，并将定时器从队列中移除
+    */
+    void listExpiredCallback(std::vector<std::function<void()>>& fns);
 
 protected:
     /**
