@@ -106,6 +106,29 @@ public: // 实例方法
             tickle();
     }
 
+    /**
+     * @brief 添加多个任务 thread-safe
+     * @param begin 单向迭代器
+     * @param end 单向迭代器
+    */
+    template <typename InputIterator>
+    void schedule(InputIterator begin, InputIterator end)
+    {
+        bool need_tickle = false;
+        {
+            ScopedLock lock(&m_mutex);
+            while (begin != end)
+            {
+                need_tickle = scheduleNonBlock(*begin) || need_tickle;
+                ++begin;
+            }
+        }
+        if (need_tickle)
+        {
+            tickle();
+        }
+    }
+
 protected:
     void run();
     virtual void tickle();
