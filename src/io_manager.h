@@ -3,6 +3,7 @@
 
 #include "scheduler.h"
 #include "thread.h"
+#include "timer.h"
 #include <atomic>
 #include <functional>
 #include <memory>
@@ -41,7 +42,7 @@ struct FDContext
     FDEventType m_events = FDEventType::NONE;
 };
 
-class IOManager final : public Scheduler
+class IOManager final : public Scheduler, public TimerManager
 {
 public: // 内部类型
     using ptr = std::shared_ptr<IOManager>;
@@ -68,7 +69,10 @@ protected:
 //    bool onStop() override;
     void onIdle() override;
     bool isStop() override;
+    bool isStop(uint64_t& timeout);
     void contextListResize(size_t size);
+
+    void onTimerInsertedAtFirst() override;
 
 private: // 私有成员
     LockType m_lock{};

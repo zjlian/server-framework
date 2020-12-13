@@ -305,44 +305,71 @@ void IOManager::tickle()
 
 bool IOManager::isStop()
 {
-    return Scheduler::isStop() && m_pending_event_count == 0;
+    uint64_t timeout;
+    return isStop(timeout);
 }
 
-//bool zjl::IOManager::onStop()
-//{
-//    return Scheduler::onStop() && m_pending_event_count == 0;
-//}
+bool IOManager::isStop(uint64_t& timeout)
+{
+    timeout = getNextTimer();
+    return timeout == ~0ull &&
+        m_pending_event_count == 0 &&
+        Scheduler::isStop();
+}
 
 void IOManager::onIdle()
 {
     LOG_DEBUG(system_logger, "调用 IOManager::onIdle()");
     auto event_list = std::make_unique<epoll_event[]>(64);
-    // std::array<epoll_event, 64> event_list;
+
     while (true)
     {
-        if (isStop())
+        uint64_t next_timeout = 0;
+        if (isStop(next_timeout))
         {
-            LOG_FMT_DEBUG(system_logger, "I/O 调度器 %s 已停止执行", m_name.c_str());
-            break;
+            // 没有等待执行的定时器
+            if (next_timeout == ~0ull)
+            {
+                LOG_FMT_DEBUG(
+                    system_logger, "I/O 调度器 %s 已停止执行", m_name.c_str());
+                break;
+            }
         }
+
         int result = 0;
         while (true)
         {
-            /**
-             * 阻塞等待 epoll 返回结果
-             * */
-            static const int MAX_TIMEOUT = 5000;
-            result = ::epoll_wait(m_epoll_fd, event_list.get(), 64, MAX_TIMEOUT);
-//            perror("epoll_wait");
+            static const int MAX_TIMEOUT = 1000;
+            if (next_timeout != ~0ull)
+            {
+                next_timeout = static_cast<int>(next_timeout) > MAX_TIMEOUT 
+                    ? MAX_TIMEOUT : next_timeout;
+            }
+            else
+            {
+                next_timeout = MAX_TIMEOUT;
+            }
+            // 阻塞等待 epoll 返回结果
+            result = ::epoll_wait(m_epoll_fd, event_list.get(), 64, static_cast<int>(next_timeout));
+
             if (result < 0 /*&& errno == EINTR*/)
             {
-                // TODO 坑
+                // TODO 处理 epoll_wait 异常
             }
             if (result >= 0)
             {
                 break;
             }
         }
+        
+        // 处理定时器
+        std::vector<std::function<void()>> fns;
+        listExpiredCallback(fns);
+        if (!fns.empty())
+        {
+            schedule(fns.begin(), fns.end());
+        }
+
         // 遍历 event_list 处理被触发事件的 fd
         for (int i = 0; i < result; i++)
         {
@@ -412,6 +439,10 @@ void IOManager::onIdle()
     }
 }
 
+void IOManager::onTimerInsertedAtFirst()
+{
+    tickle();
+}
 
 /**
  * ===================================================
