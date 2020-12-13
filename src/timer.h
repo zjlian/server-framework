@@ -101,13 +101,19 @@ public:
 
     /**
      * @brief 获取下一个定时器的等待时间
+     * @return 返回结果分为三种：无定时器等待执行返回 ~0ull，存在超时未执行的定时器返回 0，存在等待执行的定时器返回剩余的等待时间
     */
     uint64_t getNextTimer();
 
     /**
-     * @brief 获取所有等待超时的定时器的回调函数对象，并将定时器从队列中移除
+     * @brief 获取所有等待超时的定时器的回调函数对象，并将定时器从队列中移除，这个函数会自动将周期调用的定时器存回队列
     */
     void listExpiredCallback(std::vector<std::function<void()>>& fns);
+
+    /**
+     * @brief 检查是否有等待执行的定时器
+    */
+    bool hasTimer();
 
 protected:
     /**
@@ -115,9 +121,21 @@ protected:
     */
     virtual void onTimerInsertedAtFirst() = 0;
 
+    /**
+     * @brief 添加已有的定时器对象，该函数只是为了代码复用
+    */
+    void addTimer(Timer::ptr timer, WriteScopedLock& lock);
+
+private:
+    /**
+     * @brief 检查系统时间是否被修改成更早的时间
+    */
+    bool detectClockRollover(uint64_t now_ms);
+
 private:
     RWLockType m_lock;
     std::set<Timer::ptr, Timer::Comparator> m_timers;
+    uint64_t m_previous_time = 0;
 };
 
 } // end namespace zjl
