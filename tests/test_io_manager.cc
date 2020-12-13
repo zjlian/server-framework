@@ -59,8 +59,17 @@ void TEST_CreateIOManager()
     }
 }
 
+void TEST_timer()
+{
+    zjl::IOManager iom(2);
+    // iom.schedule(test_fiber);
+    iom.addTimer(1000, [](){ std::cout << "timer 1" << std::endl; }, true);
+    iom.addTimer(500, [](){ std::cout << "timer 2" << std::endl; }, true);
+}
+
 int main()
 {
-    TEST_CreateIOManager();
+    // TEST_CreateIOManager();
+    TEST_timer();
     return 0;
 }
