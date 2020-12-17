@@ -34,8 +34,9 @@ add_library(${PROJECT_NAME} SHARED
         src/scheduler.cc src/scheduler.h
         src/io_manager.cc src/io_manager.h
         src/timer.cc src/timer.h
+        src/hook.cc src/hook.h
         )
-target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} yaml-cpp pthread)
+target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} yaml-cpp pthread dl)
 
 add_executable(test_log ${PROJECT_SOURCE_DIR}/tests/test_log.cc)
 add_dependencies(test_log ${PROJECT_NAME})
@@ -68,6 +69,10 @@ target_link_libraries(test_io_manager ${PROJECT_NAME})
 add_executable(test_util ${PROJECT_SOURCE_DIR}/tests/test_util.cc)
 add_dependencies(test_util ${PROJECT_NAME})
 target_link_libraries(test_util ${PROJECT_NAME})
+
+add_executable(test_hook ${PROJECT_SOURCE_DIR}/tests/test_hook.cc)
+add_dependencies(test_hook ${PROJECT_NAME})
+target_link_libraries(test_hook ${PROJECT_NAME})
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
