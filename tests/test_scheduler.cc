@@ -22,7 +22,7 @@ void fn2()
 
 int main(int, char**)
 {
-    zjl::Scheduler sc(1, false);
+    zjl::Scheduler sc(2, true);
     sc.start();
 
     int i = 0;

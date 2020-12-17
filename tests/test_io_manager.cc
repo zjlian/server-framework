@@ -63,8 +63,12 @@ void TEST_timer()
 {
     zjl::IOManager iom(2);
     // iom.schedule(test_fiber);
-    iom.addTimer(1000, [](){ std::cout << "timer 1" << std::endl; }, true);
-    iom.addTimer(500, [](){ std::cout << "timer 2" << std::endl; }, true);
+    iom.addTimer(1000, [](){ 
+          LOG_INFO(g_logger, "sleep(1000)");
+    }, true);
+    iom.addTimer(500, [](){ 
+          LOG_INFO(g_logger, "sleep(500)");
+    }, true);
 }
 
 int main()
