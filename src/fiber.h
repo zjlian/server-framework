@@ -11,11 +11,14 @@
 namespace zjl
 {
 
+class Scheduler;
+
 /**
  * @brief 协程类
 */
 class Fiber : public std::enable_shared_from_this<Fiber>, public zjl::noncopyable
 {
+    friend class Scheduler;
 public:
     using ptr = std::shared_ptr<Fiber>;
     using uptr = std::unique_ptr<Fiber>;
@@ -41,26 +44,40 @@ public:
     explicit Fiber(FiberFunc callback, size_t stack_size = 0);
 //    Fiber(const Fiber& rhs);
     ~Fiber();
+
     // 更换协程执行函数
     void reset(FiberFunc callback);
+
     // 换入协程，该方法通常 master fiber 调用
     void swapIn();
+
     // 挂起协程，该方法通常 master fiber 调用
     void swapOut();
+
+    // 换入协程，将调用时的上下挂起到保存到线程局部变量中
+    void call();
+
+    // 挂起协程，保存当前上下文到协程对象中，从线程局部变量恢复执行上下文
+    void back();
+
     /**
      * @brief 换入协程，该方法通常由调度器调用
      * @param ctx 指定存储当前协程上下文信息的指针
      * */
     void swapIn(Fiber::ptr fiber);
+
     /**
      * @brief 挂起协程，该方法通常由调度器调用
      * @param ctx 指定要恢复的协程
      * */
     void swapOut(Fiber::ptr fiber);
+
     // 获取协程 id
     uint64_t getID() const { return m_id; }
+
     // 获取协程状态
     State getState() const { return m_state; }
+
     // 判断协程是否执行结束
     bool finish() const noexcept;
 

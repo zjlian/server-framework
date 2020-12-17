@@ -153,7 +153,8 @@ void Fiber::swapIn()
     SetThis(this);
     m_state = EXEC;
     // 挂起 master fiber，切换到当前 fiber
-    if (swapcontext(&(FiberInfo::t_master_fiber->m_ctx), &m_ctx))
+    // if (swapcontext(&(FiberInfo::t_master_fiber->m_ctx), &m_ctx))
+    if (swapcontext(&(Scheduler::GetMainFiber()->m_ctx), &m_ctx))
     {
         throw Exception(std::string(::strerror(errno)));
     }
@@ -166,6 +167,28 @@ void Fiber::swapOut()
     assert(m_stack);
     SetThis(FiberInfo::t_master_fiber.get());
     // 挂起当前 fiber，切换到 master fiber
+    // if (swapcontext(&m_ctx, &(FiberInfo::t_master_fiber->m_ctx)))
+    if (swapcontext(&m_ctx, &(Scheduler::GetMainFiber()->m_ctx)))
+    {
+        throw Exception(std::string(::strerror(errno)));
+    }
+}
+
+void Fiber::call()
+{
+    assert(m_state == INIT || m_state == READY || m_state == HOLD);
+    SetThis(this);
+    m_state = EXEC;
+    if (swapcontext(&(FiberInfo::t_master_fiber->m_ctx), &m_ctx))
+    {
+        throw Exception(std::string(::strerror(errno)));
+    }
+}
+
+void Fiber::back()
+{
+    assert(m_stack);
+    SetThis(FiberInfo::t_master_fiber.get());
     if (swapcontext(&m_ctx, &(FiberInfo::t_master_fiber->m_ctx)))
     {
         throw Exception(std::string(::strerror(errno)));
@@ -200,8 +223,6 @@ bool Fiber::finish() const noexcept
 
 Fiber::ptr Fiber::GetThis()
 {
-    //    LOG_FMT_DEBUG(system_logger, "GetThis() fiber id = %ld, callstack: \n%s\n",
-    //                  GetFiberID(), BacktraceToString().c_str());
     if (FiberInfo::t_fiber != nullptr)
     {
         // 调用 std::enable_shared_from_this::shared_from_this() 获取对象 this 的智能指针
@@ -223,29 +244,32 @@ void Fiber::YieldToReady()
     /* FIXME: 可能会造成  shared_ptr 的引用计数只增不减 */
     Fiber::ptr current_fiber = GetThis();
     current_fiber->m_state = READY;
-    if (Scheduler::GetThis() && Scheduler::GetThis()->m_root_thread_id == GetThreadID())
-    { // 调度器实例化时 use_caller 为 true, 并且当前协程所在的线程就是 root thread
-        current_fiber->swapOut(Scheduler::GetThis()->m_root_fiber);
-    }
-    else
-    {
-        current_fiber->swapOut();
-    }
+    // if (Scheduler::GetThis() && Scheduler::GetThis()->m_root_thread_id == GetThreadID())
+    // { // 调度器实例化时 use_caller 为 true, 并且当前协程所在的线程就是 root thread
+    //     // current_fiber->swapOut(Scheduler::GetThis()->m_root_fiber);
+    //     current_fiber->swapOut(FiberInfo::t_master_fiber);
+    // }
+    // else
+    // {
+    //     current_fiber->swapOut();
+    // }
+    current_fiber->swapOut();
 }
 
 void Fiber::YieldToHold()
 {
     /* FIXME: 可能会造成 shared_ptr 的引用计数只增不减 */
     auto current_fiber = GetThis();
-    current_fiber->m_state = HOLD;
-    if (Scheduler::GetThis() && Scheduler::GetThis()->m_root_thread_id == GetThreadID())
-    { // 调度器实例化时 use_caller 为 true, 并且当前协程所在的线程就是 root thread
-        current_fiber->swapOut(Scheduler::GetThis()->m_root_fiber);
-    }
-    else
-    {
-        current_fiber->swapOut();
-    }
+    // current_fiber->m_state = HOLD;
+    // if (Scheduler::GetThis() && Scheduler::GetThis()->m_root_thread_id == GetThreadID())
+    // { // 调度器实例化时 use_caller 为 true, 并且当前协程所在的线程就是 root thread
+    //     current_fiber->swapOut(FiberInfo::t_master_fiber);
+    // }
+    // else
+    // {
+    //     current_fiber->swapOut();
+    // }
+    current_fiber->swapOut();
 }
 
 uint64_t Fiber::TotalFiber()
@@ -296,11 +320,12 @@ void Fiber::MainFunc()
         Scheduler::GetThis()->m_root_thread_id == GetThreadID() &&
         Scheduler::GetThis()->m_root_fiber.get() != current_fiber_ptr)
     { // 调度器实例化时 use_caller 为 true, 并且当前协程所在的线程就是 root thread
-        current_fiber_ptr->swapOut(Scheduler::GetThis()->m_root_fiber);
+        // current_fiber_ptr->swapOut(Scheduler::GetThis()->m_root_fiber);
+        current_fiber_ptr->swapOut();
     }
     else
     {
-        current_fiber_ptr->swapOut();
+        current_fiber_ptr->back();
     }
     assert(false && "协程已经结束");
 }
