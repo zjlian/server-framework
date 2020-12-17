@@ -331,7 +331,7 @@ void IOManager::onIdle()
             if (next_timeout == ~0ull)
             {
                 LOG_FMT_DEBUG(
-                    system_logger, "I/O 调度器 %s 已停止执行", m_name.c_str());
+                    system_logger, "调度器 %s 已停止执行", m_name.c_str());
                 break;
             }
         }
@@ -351,7 +351,7 @@ void IOManager::onIdle()
             }
             // 阻塞等待 epoll 返回结果
             result = ::epoll_wait(m_epoll_fd, event_list.get(), 64, static_cast<int>(next_timeout));
-
+            
             if (result < 0 /*&& errno == EINTR*/)
             {
                 // TODO 处理 epoll_wait 异常
@@ -435,7 +435,11 @@ void IOManager::onIdle()
             }
         }
         // 让出当前线程的执行权，给调度器执行排队等待的协程
-        Fiber::YieldToHold();
+        // Fiber::YieldToHold();
+        Fiber::ptr current_fiber = Fiber::GetThis();
+        auto raw_ptr = current_fiber.get();
+        current_fiber.reset();
+        raw_ptr->swapOut();
     }
 }
 

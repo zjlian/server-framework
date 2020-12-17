@@ -1,5 +1,6 @@
 #include "scheduler.h"
 #include "log.h"
+#include "hook.h"
 
 namespace zjl
 {
@@ -79,11 +80,11 @@ void Scheduler::start()
         }
     }
     // m_root_fiber 存在就将它换入
-    if (m_root_fiber)
-    {
-        LOG_DEBUG(system_logger, "开始换入 m_root_fiber，绑定的函数是 Scheduler::run()");
-        m_root_fiber->swapIn();
-    }
+    // if (m_root_fiber)
+    // {
+    //     LOG_DEBUG(system_logger, "开始换入 m_root_fiber，绑定的函数是 Scheduler::run()");
+    //     m_root_fiber->swapIn();
+    // }
 }
 
 void Scheduler::stop()
@@ -111,7 +112,12 @@ void Scheduler::stop()
     if (m_root_fiber)
     {
         tickle();
+        if (!isStop())
+        {
+            m_root_fiber->call();
+        }
     }
+
     { // join 所有子线程
         for (auto& t : m_thread_list)
         {
@@ -140,6 +146,7 @@ void Scheduler::run()
 {
     LOG_DEBUG(system_logger, "调用 Scheduler::run()");
     t_scheduler = this;
+    setHookEnable(true);
     // 判断执行 run() 函数的线程，是否是线程池中的线程
     if (GetThreadID() != m_root_thread_id)
     { // 当前线程不存在 master fiber, 创建一个
@@ -157,13 +164,14 @@ void Scheduler::run()
         // 查找等待调度的 task
         { // !!! 作用域锁
             ScopedLock lock(&m_mutex);
-            const auto& iter = m_task_list.begin();
+            auto iter = m_task_list.begin();
             while (iter != m_task_list.end())
             {
                 // 任务指定了要在那条线程执行，但当前线程不是指定线程，
                 // 通知其他线程处理
                 if ((*iter)->thread_id != -1 && (*iter)->thread_id != GetThreadID())
                 {
+                    ++iter;
                     tickle_me = true;
                     continue;
                 }
@@ -171,6 +179,7 @@ void Scheduler::run()
                 // 任务是 fiber，但是是正在执行的，不进行处理
                 if ((*iter)->fiber && (*iter)->fiber->getState() == Fiber::EXEC)
                 {
+                    ++iter;
                     continue;
                 }
                 // 找到可以执行的任务，拷贝一份
@@ -196,7 +205,8 @@ void Scheduler::run()
             {
                 // m_root_thread_id 等于当前线程 id，说明构造调度器时 use_caller 为 true
                 // 使用 m_root_fiber 作为 master fiber
-                task.fiber->swapIn(m_root_fiber);
+                // task.fiber->swapIn(m_root_fiber);
+                task.fiber->swapIn();
             }
             else
             {
@@ -207,12 +217,16 @@ void Scheduler::run()
             Fiber::State fiber_status = task.fiber->getState();
             if (fiber_status == Fiber::READY)
             {
-                schedule(std::move(task.fiber), task.thread_id, true);
+                schedule(std::move(task.fiber), task.thread_id);
             }
-            else if (fiber_status == Fiber::HOLD)
+            else if (fiber_status != Fiber::EXCEPTION && fiber_status != Fiber::TERM)
             {
-                schedule(std::move(task.fiber));
+                task.fiber->m_state = Fiber::HOLD;
             }
+            // else //if (fiber_status == Fiber::HOLD)
+            // {
+            //     // schedule(std::move(task.fiber));
+            // }
             task.reset();
         }
         else
@@ -222,17 +236,23 @@ void Scheduler::run()
                 break;
             }
             ++m_idle_thread_count;
-            if (GetThreadID() == m_root_thread_id)
-            {
-                // m_root_thread_id 等于当前线程 id，说明构造调度器时 use_caller 为 true
-                // 使用 m_root_fiber 作为 master fiber
-                idle_fiber->swapIn(m_root_fiber);
-            }
-            else if (m_root_thread_id == -1)
-            {
-                idle_fiber->swapIn();
-            }
+            // if (GetThreadID() == m_root_thread_id)
+            // {
+            //     // m_root_thread_id 等于当前线程 id，说明构造调度器时 use_caller 为 true
+            //     // 使用 m_root_fiber 作为 master fiber
+            //     idle_fiber->swapIn(m_root_fiber);
+            // }
+            // else if (m_root_thread_id == -1)
+            // {
+            //     idle_fiber->swapIn();
+            // }
+            idle_fiber->swapIn();
             --m_idle_thread_count;
+            if (idle_fiber->getState() != Fiber::TERM && 
+                idle_fiber->getState() != Fiber::EXCEPTION)
+            {
+                idle_fiber->m_state = Fiber::HOLD;
+            }
         }
     }
     LOG_DEBUG(system_logger, "Scheduler::run() 结束");
