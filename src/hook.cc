@@ -10,7 +10,8 @@ static thread_local bool t_hook_enabled = false;
 
 #define DEAL_FUNC(DO) \
     DO(sleep) \
-    DO(usleep)
+    DO(usleep) \
+    DO(nanosleep)
 
 void hook_init()
 {
@@ -18,7 +19,7 @@ void hook_init()
     if (is_inited)
         return;
     
-#define TRY_LOAD_HOOK_FUNC(name) name ## _f = (name##_func)dlsym(RTLD_NEXT, #name);
+#define TRY_LOAD_HOOK_FUNC(name) name##_f = (name##_func)dlsym(RTLD_NEXT, #name);
     DEAL_FUNC(TRY_LOAD_HOOK_FUNC)
 #undef TRY_LOAD_HOOK_FUNC
 }
@@ -80,6 +81,23 @@ int usleep(useconds_t usec)
     auto iom = zjl::IOManager::GetThis();
     assert(iom != nullptr && "这里的 IOManager 指针不可为空");
     iom->addTimer(usec / 1000, [iom, fiber](){
+        iom->schedule(fiber);
+    });
+    zjl::Fiber::YieldToHold();
+    return 0;
+}
+
+int nanosleep(const struct timespec *req, struct timespec *rem)
+{
+    if (!zjl::t_hook_enabled)
+    {
+        return nanosleep_f(req, rem);
+    }
+    int timeout_ms = req->tv_sec * 1000 + req->tv_nsec / 1000 / 1000;
+    zjl::Fiber::ptr fiber = zjl::Fiber::GetThis();
+    auto iom = zjl::IOManager::GetThis();
+    assert(iom != nullptr && "这里的 IOManager 指针不可为空");
+    iom->addTimer(timeout_ms, [iom, fiber](){
         iom->schedule(fiber);
     });
     zjl::Fiber::YieldToHold();

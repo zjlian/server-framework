@@ -2,6 +2,7 @@
 #define SERVER_FRAMEWORK_HOOK_H
 
 #include <unistd.h>
+#include <time.h>
 
 namespace zjl
 {
@@ -25,6 +26,10 @@ extern sleep_func sleep_f;
 
 typedef int (*usleep_func)(useconds_t usec);
 extern usleep_func usleep_f;
+
+typedef int (*nanosleep_func)(const struct timespec *req, struct timespec *rem);
+extern nanosleep_func nanosleep_f;
+
 }
 
 #endif
