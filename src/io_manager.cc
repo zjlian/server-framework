@@ -100,6 +100,7 @@ int IOManager::addEventListener(int fd, FDEventType event, std::function<void()>
      *  第三步创建 epoll 事件对象，并注册事件,
      *  最后更新 fd 对象的事件处理器
      * */
+    
     FDContext* fd_ctx = nullptr;
     ReadScopedLock lock(&m_lock);
     // 从 m_fd_context_list 中拿对象
@@ -146,7 +147,8 @@ int IOManager::addEventListener(int fd, FDEventType event, std::function<void()>
             system_logger,
             "epoll_ctl 调用失败，epfd = %d",
             m_epoll_fd);
-        THROW_EXCEPTION_WHIT_ERRNO;
+        // THROW_EXCEPTION_WHIT_ERRNO;
+        return -1;
     }
 //    LOG_FMT_DEBUG(system_logger, "epoll_ctl %s 注册事件 %ul : %s",
 //                  op == 1 ? "新增" : "修改",
@@ -168,6 +170,7 @@ int IOManager::addEventListener(int fd, FDEventType event, std::function<void()>
     }
     else
     {
+        // 当 callback 是 nullptr 时，将当前上下文转换为协程，并作为时间回调使用
         event_handler.m_fiber = Fiber::GetThis();
     }
     return 0;

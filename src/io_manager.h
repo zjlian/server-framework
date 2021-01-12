@@ -52,8 +52,8 @@ public: // 实例方法
     explicit IOManager(size_t thread_size, bool use_caller = false, std::string name = "");
     ~IOManager() override;
 
-    // thread-safe 给指定的 fd 增加事件监听
-    int addEventListener(int fd, FDEventType event, std::function<void()> callback);
+    // thread-safe 给指定的 fd 增加事件监听，当 callback 是 nullptr 时，将当前上下文转换为协程，并作为事件回调使用
+    int addEventListener(int fd, FDEventType event, std::function<void()> callback = nullptr);
     // thread-safe 给指定的 fd 移除指定的事件监听
     bool removeEventListener(int fd, FDEventType event);
     // thread-safe 立即触发指定 fd 的指定的事件，然后移除该事件
