@@ -35,6 +35,7 @@ add_library(${PROJECT_NAME} SHARED
         src/io_manager.cc src/io_manager.h
         src/timer.cc src/timer.h
         src/hook.cc src/hook.h
+        src/fd_manager.cc src/fd_manager.h
         )
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} yaml-cpp pthread dl)
 
