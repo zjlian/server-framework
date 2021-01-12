@@ -21,22 +21,6 @@ friend class TimerManager;
 public:
     typedef std::shared_ptr<Timer> ptr;
 
-private:
-    /**
-     * @brief Constructor
-     * @param ms 延迟时间
-     * @param fn 回调函数
-     * @param cyclic 是否重复执行
-     * @param manager 执行环境
-    */
-    Timer(uint64_t ms, std::function<void()> fn, 
-        bool cyclic, TimerManager* manager);
-
-    /**
-     * @brief 用于创建只有时间信息的定时器，基本是用于查找超时的定时器，无其他作用
-    */
-    Timer(uint64_t next);
-
     /**
      * @brief 取消定时器
     */
@@ -53,7 +37,22 @@ private:
      * @brief 重新计时
     */
     bool refresh();
-    
+
+private:
+    /**
+     * @brief Constructor
+     * @param ms 延迟时间
+     * @param fn 回调函数
+     * @param cyclic 是否重复执行
+     * @param manager 执行环境
+    */
+    Timer(uint64_t ms, std::function<void()> fn, 
+        bool cyclic, TimerManager* manager);
+
+    /**
+     * @brief 用于创建只有时间信息的定时器，基本是用于查找超时的定时器，无其他作用
+    */
+    Timer(uint64_t next);
 
 private:
     bool m_cyclic = false;  // 是否重复
