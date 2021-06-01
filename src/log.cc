@@ -194,7 +194,7 @@ std::string LogLevel::levelToString(LogLevel::Level level)
 Logger::Logger()
     : m_name("default"),
       m_level(LogLevel::DEBUG),
-      m_format_pattern("[%d] [%p] [%f:%l@%t:%F]%T%m%n")
+      m_format_pattern("[%d] [%p] [T:%t F:%F]%T%m%n")
 {
     m_formatter.reset(new LogFormatter(m_format_pattern));
 }
