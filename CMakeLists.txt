@@ -6,6 +6,7 @@ project(server_framework)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O0 -ggdb -std=c++17 -Wall -Wno-deprecated -Werror -Wno-unused-function -Wno-unused-variable")
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # 引入boost
 #set(Boost_USE_STATIC_LIBS ON)
