@@ -154,6 +154,7 @@ void Fiber::swapIn()
     m_state = EXEC;
     // 挂起 master fiber，切换到当前 fiber
     // if (swapcontext(&(FiberInfo::t_master_fiber->m_ctx), &m_ctx))
+    assert(Scheduler::GetMainFiber() && "请勿手动调用该函数");
     if (swapcontext(&(Scheduler::GetMainFiber()->m_ctx), &m_ctx))
     {
         throw Exception(std::string(::strerror(errno)));
@@ -168,6 +169,7 @@ void Fiber::swapOut()
     SetThis(FiberInfo::t_master_fiber.get());
     // 挂起当前 fiber，切换到 master fiber
     // if (swapcontext(&m_ctx, &(FiberInfo::t_master_fiber->m_ctx)))
+    assert(Scheduler::GetMainFiber() && "请勿手动调用该函数");
     if (swapcontext(&m_ctx, &(Scheduler::GetMainFiber()->m_ctx)))
     {
         throw Exception(std::string(::strerror(errno)));
@@ -176,6 +178,7 @@ void Fiber::swapOut()
 
 void Fiber::call()
 {
+    assert(FiberInfo::t_master_fiber && "当前线程不存在主协程");
     assert(m_state == INIT || m_state == READY || m_state == HOLD);
     SetThis(this);
     m_state = EXEC;
@@ -187,6 +190,7 @@ void Fiber::call()
 
 void Fiber::back()
 {
+    assert(FiberInfo::t_master_fiber && "当前线程不存在主协程");
     assert(m_stack);
     SetThis(FiberInfo::t_master_fiber.get());
     if (swapcontext(&m_ctx, &(FiberInfo::t_master_fiber->m_ctx)))
@@ -239,11 +243,11 @@ void Fiber::SetThis(Fiber* fiber)
     FiberInfo::t_fiber = fiber;
 }
 
-void Fiber::YieldToReady()
+void Fiber::Yield()
 {
     /* FIXME: 可能会造成  shared_ptr 的引用计数只增不减 */
     Fiber::ptr current_fiber = GetThis();
-    current_fiber->m_state = READY;
+    current_fiber->m_state = HOLD;
     // if (Scheduler::GetThis() && Scheduler::GetThis()->m_root_thread_id == GetThreadID())
     // { // 调度器实例化时 use_caller 为 true, 并且当前协程所在的线程就是 root thread
     //     // current_fiber->swapOut(Scheduler::GetThis()->m_root_fiber);
@@ -253,14 +257,14 @@ void Fiber::YieldToReady()
     // {
     //     current_fiber->swapOut();
     // }
-    current_fiber->swapOut();
+    current_fiber->back();
 }
 
 void Fiber::YieldToHold()
 {
     /* FIXME: 可能会造成 shared_ptr 的引用计数只增不减 */
     auto current_fiber = GetThis();
-    // current_fiber->m_state = HOLD;
+    current_fiber->m_state = HOLD;
     // if (Scheduler::GetThis() && Scheduler::GetThis()->m_root_thread_id == GetThreadID())
     // { // 调度器实例化时 use_caller 为 true, 并且当前协程所在的线程就是 root thread
     //     current_fiber->swapOut(FiberInfo::t_master_fiber);

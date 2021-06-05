@@ -91,7 +91,7 @@ public:
     // 设置当前 fiber
     static void SetThis(Fiber* fiber);
     // 挂起当前协程，转换为 READY 状态，等待下一次调度
-    static void YieldToReady();
+    static void Yield();
     // 挂起当前协程，转换为 HOLD 状态，等待下一次调度
     static void YieldToHold();
     // 获取存在的协程数量
