@@ -13,7 +13,7 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <strstream>
+// #include <strstream>
 #include <vector>
 
 #define MAKE_LOG_EVENT(level, massage) \
@@ -241,7 +241,6 @@ public:
     {
     public:
         typedef std::shared_ptr<FormatItem> ptr;
-
         virtual void format(std::ostream& out, LogEvent::ptr ev) = 0;
     };
 

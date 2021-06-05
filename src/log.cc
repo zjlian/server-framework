@@ -146,7 +146,7 @@ public:
  * %% 输出百分号
  * %T 输出制表符
  * */
-static std::map<char, LogFormatter::FormatItem::ptr> format_item_map{
+thread_local static std::map<char, LogFormatter::FormatItem::ptr> format_item_map{
 #define FN(CH, ITEM_NAME)                 \
     {                                     \
         CH, std::make_shared<ITEM_NAME>() \
@@ -385,6 +385,7 @@ void LogFormatter::init()
                 break;
 
             case CREATE_STATUS: // 处理占位符
+                assert(!format_item_map.empty() && "format_item_map 没有被正确的初始化");
                 auto itor = format_item_map.find(m_format_pattern[i]);
                 if (itor == format_item_map.end())
                 {
