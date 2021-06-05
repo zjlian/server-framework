@@ -1,5 +1,5 @@
-#include "src/log.h"
-#include "src/scheduler.h"
+#include "log.h"
+#include "scheduler.h"
 #include <iostream>
 
 void fn()

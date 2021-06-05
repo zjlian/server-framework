@@ -1,5 +1,5 @@
-#include "src/log.h"
-#include "src/thread.h"
+#include "log.h"
+#include "thread.h"
 #include <memory>
 #include <stdint.h>
 #include <unistd.h>

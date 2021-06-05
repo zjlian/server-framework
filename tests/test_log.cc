@@ -1,7 +1,7 @@
-#include "src/config.h"
-#include "src/log.h"
-#include "src/thread.h"
-#include "src/util.h"
+#include "config.h"
+#include "log.h"
+#include "thread.h"
+#include "util.h"
 #include <boost/array.hpp>
 #include <iostream>
 #include <pthread.h>
@@ -54,7 +54,7 @@ void TEST_loggerConfig()
     std::cout << ">>>>>> Call TEST_loggerConfig 测试日志器的配置文件加载 <<<<<<" << std::endl;
     auto config = zjl::Config::Lookup("logs");
     LOG_DEBUG(GET_ROOT_LOGGER(), config->toString().c_str());
-    auto yaml_node = YAML::LoadFile("/home/workspace/c/server-framework/config.yml");
+    auto yaml_node = YAML::LoadFile("../config.yml");
     zjl::Config::LoadFromYAML(yaml_node);
     LOG_DEBUG(GET_ROOT_LOGGER(), config->toString().c_str());
 }
@@ -62,7 +62,7 @@ void TEST_loggerConfig()
 void TEST_createLoggerByYAMLFile()
 {
     std::cout << ">>>>>> Call TEST_createAndUsedLogger 测试配置功能 <<<<<<" << std::endl;
-    auto yaml_node = YAML::LoadFile("/home/workspace/c/server-framework/config.yml");
+    auto yaml_node = YAML::LoadFile("../config.yml");
     zjl::Config::LoadFromYAML(yaml_node);
     auto global_logger = zjl::LoggerManager::GetInstance()->getGlobal();
     auto system_logger = zjl::LoggerManager::GetInstance()->getLogger("system");

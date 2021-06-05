@@ -1,4 +1,4 @@
-#include "src/fiber.h"
+#include "fiber.h"
 #include <iostream>
 #include <memory>
 #include <cstdio>
@@ -32,7 +32,7 @@ void fiberFunc()
         a = b;
         b = fib;
         // 挂起当前协程
-        zjl::Fiber::YieldToReady();
+        zjl::Fiber::Yield();
     }
     std::cout << "fiberFunc() 结束" << std::endl;
 }
@@ -42,7 +42,7 @@ void test(char c)
     for (int i = 0; i < 10; i++)
     {
         std::cout << c << std::endl;
-        zjl::Fiber::YieldToReady();
+        zjl::Fiber::Yield();
     }
 }
 
@@ -52,11 +52,11 @@ int main(int, char**)
    {
        auto fiber = std::make_shared<zjl::Fiber>(fiberFunc);
        std::cout << "换入协程，打印斐波那契数列" << std::endl;
-       fiber->swapIn();
+       fiber->call();
        while (fib < 100 && !fiber->finish())
        {
            std::cout << fib << " ";
-           fiber->swapIn();
+           fiber->call();
        }
    }
 //    std::cout << "完成" << std::endl;

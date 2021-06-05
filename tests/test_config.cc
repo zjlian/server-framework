@@ -1,5 +1,5 @@
-#include "src/config.h"
-#include "src/log.h"
+#include "config.h"
+#include "log.h"
 #include "yaml-cpp/yaml.h"
 #include <cstdint>
 #include <iostream>
@@ -171,7 +171,7 @@ int main()
         });
     TEST_ConfigVarToString();
     TEST_GetConfigVarValue();
-    TEST_loadConfig("/home/workspace/c/server-framework/tests/test_config.yml");
+    TEST_loadConfig("./test_config.yml");
     TEST_ConfigVarToString();
     TEST_GetConfigVarValue();
     TEST_nonexistentConfig();
