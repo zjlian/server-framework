@@ -14,37 +14,32 @@ namespace zjl
 /**
  * @brief 地址基类
 */
-class Address 
+class Address
 {
 public:
     using ptr = std::shared_ptr<Address>;
 
     virtual ~Address() = default;
-    
-    /**
-     * @brief 获取协议族
-    */
+
+    // 获取协议族
     int getFamily() const;
 
-    /**
-     * @brief 获取 socket 地址
-    */
-    virtual const sockaddr * getAddr() const = 0;
+    // @brief 获取 socket 地址
+    virtual const sockaddr* getAddr() const = 0;
 
-    /**
-     * @brief 获取地址长度
-    */
+    // @brief 获取地址长度
     virtual socklen_t getAddrLen() const = 0;
 
-    /***/
-    virtual std::ostream& insert(std::ostream& os) const;
-
-    /***/
     std::string toString();
 
     bool operator<(const Address& rhs) const;
+
     bool operator==(const Address& rhs) const;
+
     bool operator!=(const Address& rhs) const;
+
+protected:
+    virtual std::ostream& insert(std::ostream& os) const;
 };
 
 /**
@@ -55,27 +50,19 @@ class IPAddress : public Address
 public:
     using ptr = std::shared_ptr<IPAddress>;
 
-    /**
-     * @brief 获取广播地址
-    */
+    // 获取广播地址
     virtual IPAddress::ptr broadcastAddress(uint32_t prefix_len) = 0;
 
-    /**
-     * @brief 获取网络地址
-    */
-   virtual IPAddress::ptr networkAddress(uint32_t prefix_len) = 0;
+    // 获取网络地址
+    virtual IPAddress::ptr networkAddress(uint32_t prefix_len) = 0;
 
-    /**
-     * @brief 获取子网掩码
-    */
+    // 获取子网掩码
     virtual IPAddress::ptr subnetMask(uint32_t prefix_len) = 0;
 
-    /**
-     * @brief 获取端口号
-    */
+    // 获取端口号
     virtual uint32_t getPort() const = 0;
 
-    virtual void setPort(uint32_t port) = 0;
+    virtual void setPort(uint16_t port) = 0;
 };
 
 /**
@@ -86,44 +73,32 @@ class IPv4Address : public IPAddress
 public:
     using ptr = std::shared_ptr<IPv4Address>;
 
-    IPv4Address(uint32_t address = INADDR_ANY, uint32_t port = 0);
+    IPv4Address(uint32_t address = INADDR_ANY, uint16_t port = 0);
 
-    /**
-     * @brief 获取 socket 地址
-    */
-    const sockaddr * getAddr() const override;
+    // 获取 socket 地址
+    const sockaddr* getAddr() const override;
 
-    /**
-     * @brief 获取地址长度
-    */
+    // 获取地址长度
     socklen_t getAddrLen() const override;
 
-    /***/
-    std::ostream& insert(std::ostream& os) const override;
-
-    /**
-     * @brief 获取广播地址
-    */
+    // 获取广播地址
     IPAddress::ptr broadcastAddress(uint32_t prefix_len) override;
 
-    /**
-     * @brief 获取网络地址
-    */
+    // 获取网络地址
     IPAddress::ptr networkAddress(uint32_t prefix_len) override;
 
-    /**
-     * @brief 获取子网掩码
-    */
+    // 获取子网掩码
     IPAddress::ptr subnetMask(uint32_t prefix_len) override;
 
-    /**
-     * @brief 获取端口号
-    */
+    // 获取端口号
     uint32_t getPort() const override;
 
-    void setPort(uint32_t port) override;
+    void setPort(uint16_t port) override;
 
-private: 
+protected:
+    std::ostream& insert(std::ostream& os) const override;
+
+private:
     sockaddr_in m_addr;
 };
 
@@ -135,44 +110,34 @@ class IPv6Address : public IPAddress
 public:
     using ptr = std::shared_ptr<IPv6Address>;
 
-    IPv6Address(uint32_t address = INADDR_ANY, uint32_t port = 0);
+    IPv6Address();
 
-    /**
-     * @brief 获取 socket 地址
-    */
-    const sockaddr * getAddr() const override;
+    IPv6Address(const char *address = "", uint16_t port = 0);
 
-    /**
-     * @brief 获取地址长度
-    */
+    // 获取 socket 地址
+    const sockaddr* getAddr() const override;
+
+    // 获取地址长度
     socklen_t getAddrLen() const override;
 
-    /***/
-    std::ostream& insert(std::ostream& os) const override;
-
-    /**
-     * @brief 获取广播地址
-    */
+    // 获取广播地址
     IPAddress::ptr broadcastAddress(uint32_t prefix_len) override;
 
-    /**
-     * @brief 获取网络地址
-    */
+    // 获取网络地址
     IPAddress::ptr networkAddress(uint32_t prefix_len) override;
 
-    /**
-     * @brief 获取子网掩码
-    */
+    // 获取子网掩码
     IPAddress::ptr subnetMask(uint32_t prefix_len) override;
 
-    /**
-     * @brief 获取端口号
-    */
+    // 获取端口号
     uint32_t getPort() const override;
 
-    void setPort(uint32_t port) override;
+    void setPort(uint16_t port) override;
 
-private: 
+protected:
+    std::ostream& insert(std::ostream& os) const override;
+
+private:
     sockaddr_in6 m_addr;
 };
 
@@ -186,20 +151,16 @@ public:
 
     UnixAddress(const std::string& path);
 
-    /**
-     * @brief 获取 socket 地址
-    */
-    const sockaddr * getAddr() const override;
+    // 获取 socket 地址
+    const sockaddr* getAddr() const override;
 
-    /**
-     * @brief 获取地址长度
-    */
+    // 获取地址长度
     socklen_t getAddrLen() const override;
 
-    /***/
+protected:
     std::ostream& insert(std::ostream& os) const override;
 
-private: 
+private:
     sockaddr_in m_addr;
     socklen_t m_length;
 };
@@ -212,20 +173,18 @@ class UnknowAddress : public Address
 public:
     using ptr = std::shared_ptr<UnknowAddress>;
 
-    /**
-     * @brief 获取 socket 地址
-    */
-    const sockaddr * getAddr() const override;
+    UnknowAddress();
 
-    /**
-     * @brief 获取地址长度
-    */
+    // 获取 socket 地址
+    const sockaddr* getAddr() const override;
+
+    // 获取地址长度
     socklen_t getAddrLen() const override;
 
-    /***/
+protected:
     std::ostream& insert(std::ostream& os) const override;
 
-private: 
+private:
     sockaddr m_addr;
     socklen_t m_length;
 };
