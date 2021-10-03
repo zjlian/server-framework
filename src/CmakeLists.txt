@@ -10,11 +10,8 @@ if (Boost_FOUND)
 
 endif ()
 
-include_directories(.)
-include_directories(/usr/local/include)
-link_directories(/usr/local/lib)
-
-file(GLOB CPP_SRC_LIST *.cc)
+# file(GLOB CPP_SRC_LIST *.cc)
+aux_source_directory(. CPP_SRC_LIST)
 
 add_library(libconet STATIC ${CPP_SRC_LIST})
 
